@@ -657,6 +657,21 @@ function renderPlayBrowser() {
     const trickFull = !already && p.isTrick && v.trickCount >= 10;
     const canAdd = !overLimit && !trickFull && allowed;
 
+    const dataAttrs = [
+      `data-key="${key}"`,
+      `data-formation="${formation}"`,
+      `data-slug="${p.slug}"`,
+      `data-name="${p.name.replace(/"/g,'&quot;')}"`,
+      `data-isrun="${p.isRun}"`,
+      `data-runconcept="${p.runConcept||''}"`,
+      `data-ispass="${p.isPass}"`,
+      `data-isrpo="${p.isRPO}"`,
+      `data-istrick="${p.isTrick}"`,
+      `data-isauto="${p.isAutoMotion}"`,
+      `data-isgl="${isGoalLine}"`,
+      `data-url="${(p.url||'').replace(/"/g,'&quot;')}"`,
+    ].join(' ');
+
     return `<div class="play-card ${already?'in-pb':''} ${!allowed?'blocked':''}">
       <div class="play-name">${p.name}</div>
       <div class="play-type">
@@ -670,7 +685,7 @@ function renderPlayBrowser() {
       ${!allowed ? `<div style="font-size:10px;color:var(--red);margin-top:5px">${!runOk?'Wrong run concept':''} ${!rpoOk?'RPO concept mismatch':''}</div>` : ''}
       <div style="display:flex;gap:5px;margin-top:7px">
         <button class="btn btn-sm play-add-btn ${already?'btn-danger':''}" style="flex:1"
-          onclick="togglePlay('${key}','${formation}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept||''}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}','${isGoalLine}','${(p.url||'').replace(/'/g,"\\'")}'"
+          ${dataAttrs} onclick="handlePlayToggle(this)"
           ${!canAdd&&!already?'disabled':''}>
           ${already ? 'Remove' : 'Add'}
         </button>
@@ -678,6 +693,16 @@ function renderPlayBrowser() {
       </div>
     </div>`;
   }).join('');
+}
+
+function handlePlayToggle(btn) {
+  const d = btn.dataset;
+  togglePlay(
+    d.key, d.formation, d.slug, d.name,
+    d.isrun, d.runconcept,
+    d.ispass, d.isrpo, d.istrick, d.isauto,
+    d.isgl, d.url
+  );
 }
 
 function togglePlay(key, formation, slug, name, isRun, runConcept, isPass, isRPO, isTrick, isAutoMotion, isGoalLine, url) {
@@ -854,7 +879,22 @@ function renderPBPanel() {
       <div class="formation-label" style="${isGL?'color:var(--text3);font-style:italic':''}">
         ${f.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())} (${plays.length})${isGL?' — goal line':''}
       </div>
-      ${plays.map(p => `
+      ${plays.map(p => {
+        const rmAttrs = [
+          `data-key="${p.key}"`,
+          `data-formation="${p.formation}"`,
+          `data-slug="${p.slug}"`,
+          `data-name="${(p.name||'').replace(/"/g,'&quot;')}"`,
+          `data-isrun="${p.isRun}"`,
+          `data-runconcept="${p.runConcept||''}"`,
+          `data-ispass="${p.isPass}"`,
+          `data-isrpo="${p.isRPO}"`,
+          `data-istrick="${p.isTrick}"`,
+          `data-isauto="${p.isAutoMotion}"`,
+          `data-isgl="${p.isGoalLine||false}"`,
+          `data-url="${(p.url||'').replace(/"/g,'&quot;')}"`,
+        ].join(' ');
+        return `
         <div class="pb-play">
           <div class="pb-play-name">
             ${p.name}
@@ -865,9 +905,10 @@ function renderPBPanel() {
             ${p.isTrick ? '<span class="badge badge-trick">Trick</span>' : ''}
             ${p.isRun && !p.isRPO ? `<span class="badge badge-${(p.runConcept||'any').toLowerCase()}">${p.runConcept||'Run'}</span>` : ''}
             ${p.isPass && !p.isRPO && !p.isTrick ? '<span class="badge badge-pass">Pass</span>' : ''}
-            <button class="rm-btn" onclick="togglePlay('${p.key}','${p.formation}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}','${p.isGoalLine||false}','${(p.url||'').replace(/'/g,"\\'")}')">&#215;</button>
+            <button class="rm-btn" ${rmAttrs} onclick="handlePlayToggle(this)">&#215;</button>
           </div>
-        </div>`).join('')}
+        </div>`;
+      }).join('')}
     </div>`;
   }).join('');
 }
