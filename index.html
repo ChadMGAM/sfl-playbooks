@@ -232,12 +232,11 @@
 
   <!-- Step indicator -->
   <div class="steps" id="steps">
-    <div class="step active" id="step-1"><div class="step-num">1</div> Setup</div>
-    <div class="step" id="step-2"><div class="step-num">2</div> Run Concepts</div>
-    <div class="step" id="step-3"><div class="step-num">3</div> Build Playbook</div>
+    <div class="step active" id="step-1"><div class="step-num">1</div> Setup &amp; Run Concepts</div>
+    <div class="step" id="step-2"><div class="step-num">2</div> Build Playbook</div>
   </div>
 
-  <!-- STEP 1: Setup -->
+  <!-- STEP 1: Setup + Concepts combined -->
   <div id="setup-panel">
     <div class="card">
       <div class="card-title">&#127944; Team setup</div>
@@ -258,23 +257,11 @@
           </select>
         </div>
       </div>
-      <div class="field" style="margin-bottom:12px">
-        <label>Browse from team playbook</label>
-        <select id="source-team-select" onchange="onSourceTeamChange()" disabled>
-          <option value="">— Select scheme first —</option>
-        </select>
-      </div>
-      <button class="btn btn-primary" id="setup-next-btn" onclick="goToStep(2)" disabled>
-        Next: Choose run concepts &#8594;
-      </button>
     </div>
-  </div>
 
-  <!-- STEP 2: Run Concepts -->
-  <div id="concepts-panel" style="display:none">
     <div class="card">
-      <div class="card-title">&#127939; Select your run concepts</div>
-      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Choose 1–2 run concepts. Adding a 3rd drops your max pass plays from 85 to 55 and increases RPO/option limits.</p>
+      <div class="card-title">&#127939; Run concepts</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Choose 1–2 run concepts. Adding a 3rd drops your max pass plays from 85 to 55 and bumps your RPO limit to 20.</p>
       <div class="concepts-grid">
         <div class="concept-card zone" id="concept-Zone" onclick="toggleConcept('Zone')">
           <div class="concept-name" style="color:var(--green-text)">&#127358; Zone</div>
@@ -294,32 +281,34 @@
         </div>
       </div>
       <div class="concept-warning" id="concept-warning">
-        &#9888; You've selected 3 run concepts. Your max pass plays drops from 85 to 55, and you gain +5 RPOs and +5 option plays.
+        &#9888; 3 run concepts selected — max pass plays drops from 85 to 55. RPO limit increases to 20.
       </div>
-      <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
-        <button class="btn" onclick="goToStep(1)">&#8592; Back</button>
-        <button class="btn btn-primary" id="concepts-next-btn" onclick="goToStep(3)" disabled>
-          Next: Build playbook &#8594;
+      <div style="display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary" id="setup-next-btn" onclick="goToStep(2)" disabled>
+          Start building playbook &#8594;
         </button>
-        <span id="concepts-count" style="font-size:12px;color:var(--text2)">Select 1–3 concepts</span>
+        <span id="concepts-count" style="font-size:12px;color:var(--text2)">Select your team name, scheme, and at least 1 run concept</span>
       </div>
     </div>
   </div>
 
-  <!-- STEP 3: Build Playbook -->
+  <!-- STEP 2: Build Playbook -->
   <div id="build-panel" style="display:none">
     <div class="two-col">
 
       <!-- Left: Play browser -->
       <div>
         <div class="card">
-          <div class="card-title">&#128218; Browse plays
-            <span id="browser-team-label" style="font-size:11px;color:var(--text2);font-weight:400"></span>
-          </div>
+          <div class="card-title">&#128218; Browse plays</div>
           <div class="browser-controls">
-            <select id="formation-select" onchange="onFormationChange()">
+            <select id="source-team-select" onchange="onSourceTeamChange()" style="flex:1.2">
+              <option value="">— Select team playbook —</option>
+            </select>
+            <select id="formation-select" onchange="onFormationChange()" style="flex:1.2">
               <option value="">— Select formation —</option>
             </select>
+          </div>
+          <div class="browser-controls" style="margin-top:6px">
             <select id="type-filter" onchange="renderPlayBrowser()">
               <option value="">All types</option>
               <option value="pass">Pass</option>
@@ -330,7 +319,7 @@
             <input type="text" id="play-search" placeholder="Search plays…" oninput="renderPlayBrowser()">
           </div>
           <div id="play-browser-grid" class="plays-grid">
-            <div class="empty-state">Select a formation above to browse plays</div>
+            <div class="empty-state">Select a team and formation above to browse plays</div>
           </div>
         </div>
       </div>
@@ -495,14 +484,14 @@ function showPage(name) {
 
 function goToStep(n) {
   currentStep = n;
-  ['setup-panel','concepts-panel','build-panel'].forEach((id,i) => {
+  ['setup-panel','build-panel'].forEach((id,i) => {
     document.getElementById(id).style.display = i === n-1 ? '' : 'none';
   });
   document.querySelectorAll('.step').forEach((el,i) => {
     el.classList.toggle('active', i === n-1);
     el.classList.toggle('done', i < n-1);
   });
-  if (n === 3) initBuildPanel();
+  if (n === 2) initBuildPanel();
 }
 
 // ── Step 1: Setup ──────────────────────────────────────────────────────────
@@ -514,32 +503,19 @@ function onTeamNameInput() {
 function onSchemeChange() {
   const scheme = document.getElementById('scheme-select').value;
   currentPB.scheme = scheme;
-  const sel = document.getElementById('source-team-select');
-  sel.innerHTML = '<option value="">— Select team to browse —</option>';
-  sel.disabled = !scheme;
-  if (scheme && DB && DB[scheme]) {
-    const teams = Object.keys(DB[scheme]).sort();
-    teams.forEach(t => {
-      const opt = document.createElement('option');
-      opt.value = t;
-      opt.textContent = DB[scheme][t].teamName || t.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-      sel.appendChild(opt);
-    });
-  }
   checkSetupComplete();
 }
 
 function onSourceTeamChange() {
   sourceTeam = document.getElementById('source-team-select').value;
-  checkSetupComplete();
+  if (sourceTeam) populateFormationSelect();
 }
 
 function checkSetupComplete() {
-  const ok = currentPB.teamName && currentPB.scheme && sourceTeam;
+  const ok = currentPB.teamName && currentPB.scheme && selectedConcepts.length > 0;
   document.getElementById('setup-next-btn').disabled = !ok;
 }
 
-// ── Step 2: Concepts ───────────────────────────────────────────────────────
 function toggleConcept(c) {
   const idx = selectedConcepts.indexOf(c);
   if (idx >= 0) {
@@ -550,33 +526,41 @@ function toggleConcept(c) {
   }
   currentPB.concepts = selectedConcepts;
 
-  // Update UI
   ['Zone','Power','Counter','Trap'].forEach(name => {
     const el = document.getElementById('concept-' + name);
-    const sel = selectedConcepts.includes(name);
-    el.classList.toggle('selected', sel);
-    el.classList.toggle('disabled', !sel && selectedConcepts.length >= 3);
+    el.classList.toggle('selected', selectedConcepts.includes(name));
+    el.classList.toggle('disabled', !selectedConcepts.includes(name) && selectedConcepts.length >= 3);
   });
 
-  const warn = document.getElementById('concept-warning');
-  warn.classList.toggle('show', selectedConcepts.length === 3);
+  document.getElementById('concept-warning').classList.toggle('show', selectedConcepts.length === 3);
 
   const n = selectedConcepts.length;
   document.getElementById('concepts-count').textContent =
-    n === 0 ? 'Select 1–3 concepts' :
-    n === 1 ? '1 concept selected — select 1 more (optional 3rd)' :
-    n === 2 ? '2 concepts selected ✓ — optionally add a 3rd' :
-              '3 concepts selected — max pass plays: 55';
-  document.getElementById('concepts-next-btn').disabled = n === 0;
+    n === 0 ? 'Select your team name, scheme, and at least 1 run concept' :
+    n === 1 ? '1 concept selected — you can add 1–2 more' :
+    n === 2 ? '2 concepts selected ✓ — optionally add a 3rd (reduces max pass plays to 55)' :
+              '3 concepts selected — max pass plays: 55, RPO limit: 20';
+
+  checkSetupComplete();
 }
 
-// ── Step 3: Build ──────────────────────────────────────────────────────────
+// ── Step 2: Build ──────────────────────────────────────────────────────────
 function initBuildPanel() {
-  document.getElementById('browser-team-label').textContent =
-    '— ' + (DB?.[currentPB.scheme]?.[sourceTeam]?.teamName || sourceTeam);
+  // Populate team source dropdown from chosen scheme
+  const teamSel = document.getElementById('source-team-select');
+  teamSel.innerHTML = '<option value="">— Select team playbook —</option>';
+  if (DB && currentPB.scheme && DB[currentPB.scheme]) {
+    Object.entries(DB[currentPB.scheme])
+      .sort((a,b) => (a[1].teamName||a[0]).localeCompare(b[1].teamName||b[0]))
+      .forEach(([slug, tdata]) => {
+        const opt = document.createElement('option');
+        opt.value = slug;
+        opt.textContent = tdata.teamName || slug.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+        teamSel.appendChild(opt);
+      });
+  }
   document.getElementById('pb-save-name').textContent =
     'SFL_' + currentPB.teamName.replace(/\s+/g, '');
-  populateFormationSelect();
   renderValidation();
   renderPBPanel();
 }
@@ -963,14 +947,15 @@ function loadForEdit(idx) {
   document.getElementById('team-name-input').value = pb.teamName;
   document.getElementById('scheme-select').value = pb.scheme;
   onSchemeChange();
-  setTimeout(() => {
-    document.getElementById('source-team-select').value = sourceTeam || Object.keys(DB[pb.scheme]||{})[0];
-    sourceTeam = document.getElementById('source-team-select').value;
-    selectedConcepts.forEach(c => toggleConcept(c));
-    selectedConcepts = [...currentPB.concepts];
-    showPage('builder');
-    goToStep(3);
-  }, 100);
+  // Restore concept selections
+  ['Zone','Power','Counter','Trap'].forEach(name => {
+    const el = document.getElementById('concept-' + name);
+    el.classList.toggle('selected', selectedConcepts.includes(name));
+    el.classList.toggle('disabled', !selectedConcepts.includes(name) && selectedConcepts.length >= 3);
+  });
+  document.getElementById('concept-warning').classList.toggle('show', selectedConcepts.length === 3);
+  showPage('builder');
+  goToStep(2);
 }
 
 function deletePB(idx) {
