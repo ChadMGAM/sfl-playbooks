@@ -433,6 +433,31 @@
   </div>
 </div>
 
+<!-- ══════════════════ PLAY PREVIEW POPUP ══════════════════ -->
+<div id="play-popup" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target===this)closePlayPreview()">
+  <div style="background:var(--surface);border-radius:var(--radius-lg);overflow:hidden;width:min(860px,95vw);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.4)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border2);flex-shrink:0">
+      <div>
+        <div id="popup-title" style="font-size:14px;font-weight:600;color:var(--text)"></div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">Play art via cfb.fan</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a id="popup-ext-link" href="#" target="_blank" rel="noopener" class="btn btn-sm" style="text-decoration:none;font-size:11px">Open in new tab &#8599;</a>
+        <button class="btn btn-sm" onclick="closePlayPreview()" style="font-weight:600">&#215; Close</button>
+      </div>
+    </div>
+    <div style="flex:1;overflow:hidden;position:relative;min-height:500px">
+      <div id="popup-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--text2);font-size:13px">
+        <div class="spinner"></div> Loading play art…
+      </div>
+      <iframe id="popup-iframe"
+        style="width:100%;height:100%;min-height:500px;border:none;opacity:0;transition:opacity .3s"
+        onload="this.style.opacity=1;document.getElementById('popup-loading').style.display='none'">
+      </iframe>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 let DB = null;
@@ -689,7 +714,7 @@ function renderPlayBrowser() {
           ${!canAdd&&!already?'disabled':''}>
           ${already ? 'Remove' : 'Add'}
         </button>
-        ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener" class="btn btn-sm" title="View play on cfb.fan" style="padding:4px 8px;text-decoration:none">&#128279;</a>` : ''}
+        ${p.url ? `<button class="btn btn-sm" title="Preview play art" style="padding:4px 8px" onclick="openPlayPreview('${p.url.replace(/'/g,"\\'")}','${p.name.replace(/'/g,"\\'")}')">&#128065;</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -898,7 +923,7 @@ function renderPBPanel() {
         <div class="pb-play">
           <div class="pb-play-name">
             ${p.name}
-            ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener" title="View on cfb.fan" style="color:var(--text3);font-size:11px;margin-left:5px;text-decoration:none" onmouseover="this.style.color='var(--navy)'" onmouseout="this.style.color='var(--text3)'">&#128279;</a>` : ''}
+            ${p.url ? `<button onclick="openPlayPreview('${(p.url||'').replace(/'/g,"\\'")}','${(p.name||'').replace(/'/g,"\\'")}'" title="Preview play art" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;margin-left:4px;padding:0" onmouseover="this.style.color='var(--navy)'" onmouseout="this.style.color='var(--text3)'">&#128065;</button>` : ''}
           </div>
           <div class="pb-play-right">
             ${p.isRPO ? '<span class="badge badge-rpo">RPO</span>' : ''}
@@ -1044,6 +1069,33 @@ function deletePB(idx) {
   window.storage.set('sfl_playbooks_v3', JSON.stringify(playbooks)).catch(()=>{});
   renderLibrary();
 }
+
+// ── Play preview popup ─────────────────────────────────────────────────────
+function openPlayPreview(url, name) {
+  const popup = document.getElementById('play-popup');
+  const iframe = document.getElementById('popup-iframe');
+  const loading = document.getElementById('popup-loading');
+  document.getElementById('popup-title').textContent = name;
+  document.getElementById('popup-ext-link').href = url;
+  // Reset iframe
+  iframe.style.opacity = '0';
+  loading.style.display = 'flex';
+  iframe.src = url;
+  popup.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closePlayPreview() {
+  const popup = document.getElementById('play-popup');
+  popup.style.display = 'none';
+  document.getElementById('popup-iframe').src = '';
+  document.body.style.overflow = '';
+}
+
+// Close on Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePlayPreview();
+});
 
 init();
 </script>
