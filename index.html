@@ -301,14 +301,9 @@
         <div class="card">
           <div class="card-title">&#128218; Browse plays</div>
           <div class="browser-controls">
-            <select id="source-team-select" onchange="onSourceTeamChange()" style="flex:1.2">
-              <option value="">— Select team playbook —</option>
-            </select>
-            <select id="formation-select" onchange="onFormationChange()" style="flex:1.2">
+            <select id="formation-select" onchange="onFormationChange()" style="flex:2">
               <option value="">— Select formation —</option>
             </select>
-          </div>
-          <div class="browser-controls" style="margin-top:6px">
             <select id="type-filter" onchange="renderPlayBrowser()">
               <option value="">All types</option>
               <option value="pass">Pass</option>
@@ -319,7 +314,7 @@
             <input type="text" id="play-search" placeholder="Search plays…" oninput="renderPlayBrowser()">
           </div>
           <div id="play-browser-grid" class="plays-grid">
-            <div class="empty-state">Select a team and formation above to browse plays</div>
+            <div class="empty-state">Select a formation above to browse plays</div>
           </div>
         </div>
       </div>
@@ -453,22 +448,20 @@ const RPO_POWER_KEYS  = ['rpo-alert','rpo-split'];
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 async function init() {
-  // Load saved playbooks
   try {
     const saved = await window.storage.get('sfl_playbooks_v3');
     if (saved) playbooks = JSON.parse(saved.value);
   } catch(e) { playbooks = []; }
 
-  // Load play database
   try {
-    const r = await fetch('./plays_structured.json');
+    const r = await fetch('./plays_merged.json');
     DB = await r.json();
     console.log('DB loaded');
   } catch(e) {
-    console.error('Could not load plays_structured.json', e);
+    console.error('Could not load plays_merged.json', e);
     document.getElementById('page-builder').innerHTML = `
       <div class="card"><div class="alert alert-err">
-        &#9888; Could not load play database. Make sure plays_structured.json is in the same folder as index.html.
+        &#9888; Could not load play database. Make sure plays_merged.json is in the same folder as index.html.
       </div></div>`;
   }
 }
@@ -546,43 +539,54 @@ function toggleConcept(c) {
 
 // ── Step 2: Build ──────────────────────────────────────────────────────────
 function initBuildPanel() {
-  // Populate team source dropdown from chosen scheme
-  const teamSel = document.getElementById('source-team-select');
-  teamSel.innerHTML = '<option value="">— Select team playbook —</option>';
-  if (DB && currentPB.scheme && DB[currentPB.scheme]) {
-    Object.entries(DB[currentPB.scheme])
-      .sort((a,b) => (a[1].teamName||a[0]).localeCompare(b[1].teamName||b[0]))
-      .forEach(([slug, tdata]) => {
-        const opt = document.createElement('option');
-        opt.value = slug;
-        opt.textContent = tdata.teamName || slug.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-        teamSel.appendChild(opt);
-      });
-  }
   document.getElementById('pb-save-name').textContent =
     'SFL_' + currentPB.teamName.replace(/\s+/g, '');
+  populateFormationSelect();
   renderValidation();
   renderPBPanel();
 }
 
 function populateFormationSelect() {
-  if (!DB || !currentPB.scheme || !sourceTeam) return;
-  const formations = DB[currentPB.scheme]?.[sourceTeam]?.formations || {};
+  if (!DB || !currentPB.scheme) return;
+  const formations = DB[currentPB.scheme]?.formations || {};
   const sel = document.getElementById('formation-select');
   sel.innerHTML = '<option value="">— Select formation —</option>';
-  Object.entries(formations).sort((a,b) => a[1].name.localeCompare(b[1].name)).forEach(([slug, fdata]) => {
+
+  const regular = [], goalLine = [];
+  Object.entries(formations).forEach(([slug, fdata]) => {
     const banned = BANNED.some(b => slug.includes(b));
+    (fdata.isGoalLine ? goalLine : regular).push({ slug, name: fdata.name, banned });
+  });
+  regular.sort((a,b) => a.name.localeCompare(b.name));
+  goalLine.sort((a,b) => a.name.localeCompare(b.name));
+
+  const regGroup = document.createElement('optgroup');
+  regGroup.label = `Formations (${regular.length} available)`;
+  regular.forEach(({ slug, name, banned }) => {
     const opt = document.createElement('option');
     opt.value = slug;
-    opt.textContent = fdata.name + (banned ? ' ⛔' : '');
-    sel.appendChild(opt);
+    opt.textContent = name + (banned ? ' ⛔ BANNED' : '');
+    regGroup.appendChild(opt);
   });
+  sel.appendChild(regGroup);
+
+  if (goalLine.length) {
+    const glGroup = document.createElement('optgroup');
+    glGroup.label = '⚑ Goal Line / Hail Mary — excluded from formation & play counts';
+    goalLine.forEach(({ slug, name }) => {
+      const opt = document.createElement('option');
+      opt.value = slug;
+      opt.textContent = name;
+      glGroup.appendChild(opt);
+    });
+    sel.appendChild(glGroup);
+  }
 }
 
 function onFormationChange() { renderPlayBrowser(); }
 
 function renderPlayBrowser() {
-  if (!DB || !currentPB.scheme || !sourceTeam) return;
+  if (!DB || !currentPB.scheme) return;
   const formation = document.getElementById('formation-select').value;
   const typeFilter = document.getElementById('type-filter').value;
   const search = document.getElementById('play-search').value.toLowerCase();
@@ -599,10 +603,26 @@ function renderPlayBrowser() {
     return;
   }
 
-  const fdata = DB[currentPB.scheme]?.[sourceTeam]?.formations?.[formation];
+  const fdata = DB[currentPB.scheme]?.formations?.[formation];
   if (!fdata) { grid.innerHTML = '<div class="empty-state">Formation not found</div>'; return; }
 
+  const isGoalLine = fdata.isGoalLine;
   const inPB = new Set(currentPB.plays.map(p => p.key));
+
+  function isRunAllowed(p) {
+    if (!p.isRun || p.runConcept === 'Any') return true;
+    return selectedConcepts.includes(p.runConcept);
+  }
+
+  function isRPOAllowed(p) {
+    if (!p.isRPO) return true;
+    const slug = p.slug.toLowerCase();
+    const zoneType = RPO_ZONE_KEYS.some(k => slug.includes(k));
+    const powerType = RPO_POWER_KEYS.some(k => slug.includes(k));
+    if (zoneType) return selectedConcepts.some(c => c === 'Zone' || c === 'Counter');
+    if (powerType) return selectedConcepts.some(c => c === 'Power' || c === 'Trap');
+    return true;
+  }
 
   let plays = fdata.plays.filter(p => {
     if (search && !p.name.toLowerCase().includes(search) && !p.slug.includes(search)) return false;
@@ -618,32 +638,22 @@ function renderPlayBrowser() {
     return;
   }
 
-  // Check if run play matches chosen concepts
-  function isRunAllowed(p) {
-    if (!p.isRun || p.runConcept === 'Any') return true;
-    return selectedConcepts.includes(p.runConcept);
-  }
-
-  // Check RPO alignment
-  function isRPOAllowed(p) {
-    if (!p.isRPO) return true;
-    const slug = p.slug.toLowerCase();
-    const zoneType = RPO_ZONE_KEYS.some(k => slug.includes(k));
-    const powerType = RPO_POWER_KEYS.some(k => slug.includes(k));
-    if (zoneType) return selectedConcepts.some(c => c === 'Zone' || c === 'Counter');
-    if (powerType) return selectedConcepts.some(c => c === 'Power' || c === 'Trap');
-    return true;
-  }
-
   const v = validate(currentPB);
 
-  grid.innerHTML = plays.map(p => {
-    const key = `${sourceTeam}||${formation}||${p.slug}`;
+  // Goal line note banner
+  const glBanner = isGoalLine
+    ? `<div class="alert alert-info" style="margin-bottom:10px;font-size:11px">
+        &#128293; Goal Line / Hail Mary plays do <strong>not</strong> count toward your 125-play limit or formation count.
+       </div>`
+    : '';
+
+  grid.innerHTML = glBanner + plays.map(p => {
+    const key = `${formation}||${p.slug}`;
     const already = inPB.has(key);
-    const runOk = isRunAllowed(p);
-    const rpoOk = isRPOAllowed(p);
+    const runOk = isGoalLine || isRunAllowed(p);
+    const rpoOk = isGoalLine || isRPOAllowed(p);
     const allowed = runOk && rpoOk;
-    const overLimit = !already && currentPB.plays.length >= 125;
+    const overLimit = !already && !isGoalLine && currentPB.plays.length >= 125;
     const trickFull = !already && p.isTrick && v.trickCount >= 10;
     const canAdd = !overLimit && !trickFull && allowed;
 
@@ -654,11 +664,12 @@ function renderPlayBrowser() {
         ${p.isTrick ? '<span class="badge badge-trick">Trick</span>' : ''}
         ${p.isRun && !p.isRPO ? `<span class="badge badge-${(p.runConcept||'any').toLowerCase()}">${p.runConcept||'Run'}</span>` : ''}
         ${p.isPass && !p.isRPO && !p.isTrick ? '<span class="badge badge-pass">Pass</span>' : ''}
-        ${p.isAutoMotion ? '<span class="badge badge-auto">Auto-motion</span>' : ''}
+        ${p.isAutoMotion ? '<span class="badge badge-auto">Motion</span>' : ''}
+        ${isGoalLine ? '<span class="badge badge-any">Goal line</span>' : ''}
       </div>
       ${!allowed ? `<div style="font-size:10px;color:var(--red);margin-top:5px">${!runOk?'Wrong run concept':''} ${!rpoOk?'RPO concept mismatch':''}</div>` : ''}
       <button class="btn btn-sm play-add-btn ${already?'btn-danger':''}"
-        onclick="togglePlay('${key}','${formation}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept||''}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}')"
+        onclick="togglePlay('${key}','${formation}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept||''}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}','${isGoalLine}')"
         ${!canAdd&&!already?'disabled':''}>
         ${already ? 'Remove' : 'Add'}
       </button>
@@ -666,7 +677,7 @@ function renderPlayBrowser() {
   }).join('');
 }
 
-function togglePlay(key, formation, slug, name, isRun, runConcept, isPass, isRPO, isTrick, isAutoMotion) {
+function togglePlay(key, formation, slug, name, isRun, runConcept, isPass, isRPO, isTrick, isAutoMotion, isGoalLine) {
   const idx = currentPB.plays.findIndex(p => p.key === key);
   if (idx >= 0) {
     currentPB.plays.splice(idx, 1);
@@ -676,6 +687,7 @@ function togglePlay(key, formation, slug, name, isRun, runConcept, isPass, isRPO
       isRun: isRun === 'true', runConcept,
       isPass: isPass === 'true', isRPO: isRPO === 'true',
       isTrick: isTrick === 'true', isAutoMotion: isAutoMotion === 'true',
+      isGoalLine: isGoalLine === 'true',
     });
   }
   renderPlayBrowser();
@@ -685,19 +697,22 @@ function togglePlay(key, formation, slug, name, isRun, runConcept, isPass, isRPO
 
 // ── Validation ─────────────────────────────────────────────────────────────
 function validate(pb) {
-  const plays = pb.plays || [];
+  const allPlays = pb.plays || [];
   const concepts = pb.concepts || [];
   const use3 = concepts.length >= 3;
   const maxPass = use3 ? 55 : 85;
   const maxRPO  = use3 ? 20 : 15;
 
+  // Goal line / hail mary excluded from play count, formation count, and pass/run minimums
+  const plays   = allPlays.filter(p => !p.isGoalLine);
+
   const total      = plays.length;
   const passPlays  = plays.filter(p => p.isPass && !p.isRPO);
   const runPlays   = plays.filter(p => p.isRun);
   const rpoPlays   = plays.filter(p => p.isRPO);
-  const trickPlays = plays.filter(p => p.isTrick);
+  const trickPlays = allPlays.filter(p => p.isTrick); // trick limit counts ALL plays incl. goal line
   const autoPass   = plays.filter(p => p.isAutoMotion && (p.isPass || p.isRPO));
-  const sets       = new Set(plays.map(p => p.formation));
+  const sets       = new Set(plays.map(p => p.formation)); // goal line sets excluded
   const passTotal  = passPlays.length + rpoPlays.length;
 
   const trickCount = trickPlays.length;
@@ -705,6 +720,7 @@ function validate(pb) {
   return {
     total, passTotal, runCount: runPlays.length, rpoCount: rpoPlays.length,
     trickCount, autoPassCount: autoPass.length, setCount: sets.size,
+    glCount: allPlays.filter(p => p.isGoalLine).length,
     maxPass, maxRPO,
     errors: [
       total > 125                    && `Total plays: ${total}/125 max`,
@@ -773,6 +789,11 @@ function renderValidation() {
       <div class="meter-limit">max 25</div>
       <div class="pbar"><div class="pbar-fill ${v.autoPassCount>25?'err':'ok'}" style="width:${pct(v.autoPassCount,25)}%"></div></div>
     </div>
+    <div class="meter">
+      <div class="meter-val" style="color:var(--text2)">${v.glCount}</div>
+      <div class="meter-label">Goal line plays</div>
+      <div class="meter-limit">not counted</div>
+    </div>
   `;
 
   // Checklist
@@ -827,7 +848,7 @@ function renderPBPanel() {
             ${p.isTrick ? '<span class="badge badge-trick">Trick</span>' : ''}
             ${p.isRun && !p.isRPO ? `<span class="badge badge-${(p.runConcept||'any').toLowerCase()}">${p.runConcept||'Run'}</span>` : ''}
             ${p.isPass && !p.isRPO && !p.isTrick ? '<span class="badge badge-pass">Pass</span>' : ''}
-            <button class="rm-btn" onclick="togglePlay('${p.key}','${p.formation}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}')">&#215;</button>
+            <button class="rm-btn" onclick="togglePlay('${p.key}','${p.formation}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}','${p.isGoalLine||false}')">&#215;</button>
           </div>
         </div>`).join('')}
     </div>`).join('');
