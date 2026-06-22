@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SFL Playbook Maker — CFB Dynasty</title>
+<style>
+  :root {
+    --navy: #1a3a5c;
+    --navy-dark: #0f2440;
+    --navy-light: #2a5080;
+    --gold: #c8a84b;
+    --gold-light: #e8c86a;
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --surface2: #f8f9fb;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.06);
+    --text: #1a1f2e;
+    --text2: #5a6377;
+    --text3: #8a93a8;
+    --green: #1d9e75; --green-bg: #e1f5ee; --green-text: #085041;
+    --red: #e24b4a;   --red-bg: #fcebeb;   --red-text: #791f1f;
+    --amber: #ba7517; --amber-bg: #faeeda; --amber-text: #633806;
+    --blue: #185fa5;  --blue-bg: #e6f1fb;  --blue-text: #0c447c;
+    --purple: #534ab7; --purple-bg: #eeedfe; --purple-text: #3c3489;
+    --teal: #0f6e56;  --teal-bg: #e1f5ee;  --teal-text: #085041;
+    --radius: 10px; --radius-sm: 6px; --radius-lg: 14px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+  /* ── Header ── */
+  .site-header { background: var(--navy); padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .site-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .logo-badge { width: 34px; height: 34px; background: var(--gold); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: var(--navy-dark); letter-spacing: 0.5px; }
+  .logo-text { color: #fff; font-size: 15px; font-weight: 600; }
+  .logo-sub { color: rgba(255,255,255,0.5); font-size: 11px; }
+  .nav { display: flex; gap: 2px; }
+  .nav-btn { background: transparent; border: none; color: rgba(255,255,255,0.65); padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-family: inherit; transition: all .15s; }
+  .nav-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .nav-btn.active { background: rgba(255,255,255,0.15); color: #fff; font-weight: 500; }
+
+  /* ── Layout ── */
+  .page { display: none; max-width: 1200px; margin: 0 auto; padding: 1.5rem 1.25rem; }
+  .page.active { display: block; }
+
+  /* ── Cards ── */
+  .card { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; box-shadow: var(--shadow); }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 1rem; display: flex; align-items: center; gap: 7px; }
+  .card-title svg { opacity: .6; }
+
+  /* ── Forms ── */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 11px; font-weight: 600; color: var(--text2); letter-spacing: .3px; text-transform: uppercase; }
+  input[type=text], select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--surface); color: var(--text); font-family: inherit; outline: none; transition: border-color .15s; }
+  input[type=text]:focus, select:focus { border-color: var(--navy); }
+  select { cursor: pointer; }
+
+  /* ── Buttons ── */
+  .btn { padding: 7px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-size: 13px; font-family: inherit; color: var(--text); display: inline-flex; align-items: center; gap: 6px; transition: all .15s; font-weight: 500; }
+  .btn:hover { background: var(--surface2); border-color: rgba(0,0,0,.2); }
+  .btn-primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .btn-primary:hover { background: var(--navy-light); border-color: var(--navy-light); }
+  .btn-gold { background: var(--gold); color: var(--navy-dark); border-color: var(--gold); font-weight: 600; }
+  .btn-gold:hover { background: var(--gold-light); }
+  .btn-danger { color: var(--red); border-color: rgba(226,75,74,0.3); }
+  .btn-danger:hover { background: var(--red-bg); }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ── Run concept selector ── */
+  .concepts-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px; }
+  .concept-card { border: 2px solid var(--border); border-radius: var(--radius); padding: 10px 12px; cursor: pointer; transition: all .15s; background: var(--surface); text-align: center; }
+  .concept-card:hover { border-color: var(--navy-light); }
+  .concept-card.selected { border-color: var(--navy); background: var(--blue-bg); }
+  .concept-card.selected.zone   { border-color: var(--green); background: var(--green-bg); }
+  .concept-card.selected.power  { border-color: #d85a30; background: #faece7; }
+  .concept-card.selected.counter{ border-color: var(--amber); background: var(--amber-bg); }
+  .concept-card.selected.trap   { border-color: var(--purple); background: var(--purple-bg); }
+  .concept-name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .concept-desc { font-size: 10px; color: var(--text2); line-height: 1.4; }
+  .concept-card.disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
+  .concept-warning { font-size: 11px; color: var(--amber); background: var(--amber-bg); border: 1px solid rgba(186,117,23,.3); border-radius: var(--radius-sm); padding: 7px 10px; margin-top: 6px; display: none; }
+  .concept-warning.show { display: block; }
+
+  /* ── Validation meters ── */
+  .meters { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 1rem; }
+  .meter { background: var(--surface2); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .meter-val { font-size: 20px; font-weight: 700; color: var(--text); }
+  .meter-val.ok  { color: var(--green); }
+  .meter-val.err { color: var(--red); }
+  .meter-val.warn{ color: var(--amber); }
+  .meter-label { font-size: 10px; color: var(--text2); margin-top: 2px; }
+  .meter-limit { font-size: 10px; color: var(--text3); }
+  .pbar { height: 3px; background: var(--bg); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .pbar-fill { height: 3px; border-radius: 2px; transition: width .3s; }
+  .pbar-fill.ok   { background: var(--green); }
+  .pbar-fill.err  { background: var(--red); }
+  .pbar-fill.warn { background: var(--amber); }
+
+  /* ── Validation checklist ── */
+  .val-list { display: flex; flex-direction: column; gap: 3px; }
+  .val-item { display: flex; align-items: center; gap: 7px; font-size: 11px; padding: 3px 0; }
+  .val-item.ok   { color: var(--green-text); }
+  .val-item.err  { color: var(--red-text); }
+  .val-item.warn { color: var(--amber-text); }
+  .val-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .ok .val-dot   { background: var(--green); }
+  .err .val-dot  { background: var(--red); }
+  .warn .val-dot { background: var(--amber); }
+
+  /* ── Play browser ── */
+  .browser-controls { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .browser-controls select { flex: 1; min-width: 160px; }
+  .browser-controls input { flex: 1; min-width: 160px; }
+  .plays-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 7px; margin-top: 10px; }
+  .play-card { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 9px 11px; position: relative; transition: border-color .15s; }
+  .play-card:hover { border-color: rgba(0,0,0,.2); }
+  .play-card.in-pb { border-color: var(--green); background: var(--green-bg); }
+  .play-card.blocked { opacity: .35; }
+  .play-card.banned { opacity: .25; }
+  .play-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .play-type { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+  .play-add-btn { margin-top: 7px; width: 100%; }
+
+  /* ── Badges ── */
+  .badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px; letter-spacing: .3px; text-transform: uppercase; }
+  .badge-zone    { background: var(--green-bg);  color: var(--green-text); }
+  .badge-power   { background: #faece7; color: #712b13; }
+  .badge-counter { background: var(--amber-bg); color: var(--amber-text); }
+  .badge-trap    { background: var(--purple-bg); color: var(--purple-text); }
+  .badge-any     { background: #f1efe8; color: #444; }
+  .badge-pass    { background: var(--blue-bg);  color: var(--blue-text); }
+  .badge-rpo     { background: #fbeaf0; color: #72243e; }
+  .badge-trick   { background: #f1efe8; color: #5f5e5a; }
+  .badge-auto    { background: #fff3cd; color: #856404; font-size: 8px; }
+  .badge-scheme  { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .sch-spread  { background: var(--blue-bg);   color: var(--blue-text); }
+  .sch-multi   { background: var(--green-bg);  color: var(--green-text); }
+  .sch-air     { background: var(--purple-bg); color: var(--purple-text); }
+  .sch-opt     { background: #faece7; color: #712b13; }
+  .sch-veer    { background: var(--amber-bg);  color: var(--amber-text); }
+
+  /* ── Current playbook panel ── */
+  .pb-panel { }
+  .formation-group { margin-bottom: 14px; }
+  .formation-label { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; padding-bottom: 5px; border-bottom: 1px solid var(--border2); }
+  .pb-play { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border2); }
+  .pb-play:last-child { border-bottom: none; }
+  .pb-play-name { font-size: 12px; color: var(--text); }
+  .pb-play-right { display: flex; align-items: center; gap: 6px; }
+  .rm-btn { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 16px; line-height: 1; padding: 0 2px; }
+  .rm-btn:hover { color: var(--red); }
+
+  /* ── Library ── */
+  .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
+  .lib-card { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: 1.1rem; box-shadow: var(--shadow); }
+  .lib-card-name { font-size: 15px; font-weight: 700; color: var(--text); }
+  .lib-card-meta { font-size: 11px; color: var(--text2); margin-top: 3px; }
+  .lib-card-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .lib-chip { font-size: 10px; padding: 2px 8px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px; color: var(--text2); }
+  .status-bar { display: flex; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
+  .status-item { font-size: 11px; color: var(--text2); }
+
+  /* ── Steps ── */
+  .steps { display: flex; gap: 0; margin-bottom: 1.5rem; }
+  .step { flex: 1; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border2); font-size: 12px; color: var(--text2); position: relative; display: flex; align-items: center; gap: 8px; }
+  .step:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+  .step:last-child  { border-radius: 0 var(--radius) var(--radius) 0; }
+  .step.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .step.done   { background: var(--green-bg); color: var(--green-text); border-color: var(--green); }
+  .step-num { width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,.1); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+  .step.active .step-num { background: rgba(255,255,255,.2); }
+  .step.done .step-num   { background: var(--green); color: #fff; }
+
+  /* ── Misc ── */
+  .divider { border: none; border-top: 1px solid var(--border2); margin: 12px 0; }
+  .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--text2); }
+  .alert { border-radius: var(--radius-sm); padding: 9px 12px; font-size: 12px; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 8px; }
+  .alert-ok  { background: var(--green-bg); color: var(--green-text); border: 1px solid rgba(29,158,117,.25); }
+  .alert-err { background: var(--red-bg);   color: var(--red-text);   border: 1px solid rgba(226,75,74,.25); }
+  .alert-info{ background: var(--blue-bg);  color: var(--blue-text);  border: 1px solid rgba(24,95,165,.25); }
+  .alert-warn{ background: var(--amber-bg); color: var(--amber-text); border: 1px solid rgba(186,117,23,.25); }
+  .two-col { display: grid; grid-template-columns: 1fr 340px; gap: 1rem; align-items: start; }
+  .sticky-panel { position: sticky; top: 72px; }
+  .loading { display: flex; align-items: center; justify-content: center; padding: 3rem; color: var(--text2); gap: 10px; }
+  .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 5px; }
+
+  /* ── Stats bar ── */
+  .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 1rem; }
+  .stat { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px; text-align: center; }
+  .stat-val { font-size: 22px; font-weight: 700; color: var(--text); }
+  .stat-lbl { font-size: 10px; color: var(--text2); margin-top: 2px; text-transform: uppercase; letter-spacing: .3px; }
+
+  @media (max-width: 700px) {
+    .two-col { grid-template-columns: 1fr; }
+    .sticky-panel { position: static; }
+    .concepts-grid { grid-template-columns: 1fr 1fr; }
+    .grid2, .grid3 { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: 1fr 1fr; }
+    .steps { flex-direction: column; }
+    .step:first-child, .step:last-child { border-radius: var(--radius-sm); }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="site-logo" href="#">
+    <div class="logo-badge">SFL</div>
+    <div>
+      <div class="logo-text">SFL Playbook Maker</div>
+      <div class="logo-sub">CFB Dynasty League</div>
+    </div>
+  </a>
+  <nav class="nav">
+    <button class="nav-btn active" onclick="showPage('builder')">&#9998; Builder</button>
+    <button class="nav-btn" onclick="showPage('library')">&#128218; Library</button>
+    <button class="nav-btn" onclick="showPage('rules')">&#128203; Rules</button>
+  </nav>
+</header>
+
+<!-- ══════════════════ BUILDER PAGE ══════════════════ -->
+<div id="page-builder" class="page active">
+
+  <!-- Step indicator -->
+  <div class="steps" id="steps">
+    <div class="step active" id="step-1"><div class="step-num">1</div> Setup</div>
+    <div class="step" id="step-2"><div class="step-num">2</div> Run Concepts</div>
+    <div class="step" id="step-3"><div class="step-num">3</div> Build Playbook</div>
+  </div>
+
+  <!-- STEP 1: Setup -->
+  <div id="setup-panel">
+    <div class="card">
+      <div class="card-title">&#127944; Team setup</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Your SFL team name</label>
+          <input type="text" id="team-name-input" placeholder="e.g. Michigan Wolverines" oninput="onTeamNameInput()">
+        </div>
+        <div class="field">
+          <label>Offensive scheme</label>
+          <select id="scheme-select" onchange="onSchemeChange()">
+            <option value="">— Select scheme —</option>
+            <option value="Pistol/Spread">Pistol / Spread</option>
+            <option value="Multiple/Pro Style">Multiple / Pro Style</option>
+            <option value="Air Raid">Air Raid</option>
+            <option value="Spread Option/Power Option">Spread Option / Power Option</option>
+            <option value="Veer & Shoot/Run & Shoot">Veer &amp; Shoot / Run &amp; Shoot</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Browse from team playbook</label>
+        <select id="source-team-select" onchange="onSourceTeamChange()" disabled>
+          <option value="">— Select scheme first —</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="setup-next-btn" onclick="goToStep(2)" disabled>
+        Next: Choose run concepts &#8594;
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Run Concepts -->
+  <div id="concepts-panel" style="display:none">
+    <div class="card">
+      <div class="card-title">&#127939; Select your run concepts</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Choose 1–2 run concepts. Adding a 3rd drops your max pass plays from 85 to 55 and increases RPO/option limits.</p>
+      <div class="concepts-grid">
+        <div class="concept-card zone" id="concept-Zone" onclick="toggleConcept('Zone')">
+          <div class="concept-name" style="color:var(--green-text)">&#127358; Zone</div>
+          <div class="concept-desc">Inside/Outside Zone, Sweep, Stretch, Read Option, Speed Option</div>
+        </div>
+        <div class="concept-card power" id="concept-Power" onclick="toggleConcept('Power')">
+          <div class="concept-name" style="color:#712b13">&#128170; Power</div>
+          <div class="concept-desc">Dive, Power O, Lead, Blast, Buck, Smash, Iso</div>
+        </div>
+        <div class="concept-card counter" id="concept-Counter" onclick="toggleConcept('Counter')">
+          <div class="concept-name" style="color:var(--amber-text)">&#129300; Counter</div>
+          <div class="concept-desc">Counter, GT Counter, QB Wrap, Veer, Triple Option</div>
+        </div>
+        <div class="concept-card trap" id="concept-Trap" onclick="toggleConcept('Trap')">
+          <div class="concept-name" style="color:var(--purple-text)">&#128270; Trap</div>
+          <div class="concept-desc">Trap, Toss, Wham, Pin &amp; Pull Toss, Crack Toss</div>
+        </div>
+      </div>
+      <div class="concept-warning" id="concept-warning">
+        &#9888; You've selected 3 run concepts. Your max pass plays drops from 85 to 55, and you gain +5 RPOs and +5 option plays.
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+        <button class="btn" onclick="goToStep(1)">&#8592; Back</button>
+        <button class="btn btn-primary" id="concepts-next-btn" onclick="goToStep(3)" disabled>
+          Next: Build playbook &#8594;
+        </button>
+        <span id="concepts-count" style="font-size:12px;color:var(--text2)">Select 1–3 concepts</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Build Playbook -->
+  <div id="build-panel" style="display:none">
+    <div class="two-col">
+
+      <!-- Left: Play browser -->
+      <div>
+        <div class="card">
+          <div class="card-title">&#128218; Browse plays
+            <span id="browser-team-label" style="font-size:11px;color:var(--text2);font-weight:400"></span>
+          </div>
+          <div class="browser-controls">
+            <select id="formation-select" onchange="onFormationChange()">
+              <option value="">— Select formation —</option>
+            </select>
+            <select id="type-filter" onchange="renderPlayBrowser()">
+              <option value="">All types</option>
+              <option value="pass">Pass</option>
+              <option value="run">Run</option>
+              <option value="rpo">RPO</option>
+              <option value="trick">Trick</option>
+            </select>
+            <input type="text" id="play-search" placeholder="Search plays…" oninput="renderPlayBrowser()">
+          </div>
+          <div id="play-browser-grid" class="plays-grid">
+            <div class="empty-state">Select a formation above to browse plays</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Current playbook + validation -->
+      <div class="sticky-panel">
+        <!-- Validation meters -->
+        <div class="card" id="validation-card">
+          <div class="card-title">&#9989; Live validation
+            <span id="val-status-badge" style="margin-left:auto;font-size:11px"></span>
+          </div>
+          <div class="meters" id="meters"></div>
+          <div class="val-list" id="val-list"></div>
+          <hr class="divider">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--text2)">Saving as: <strong id="pb-save-name" style="color:var(--text)">—</strong></div>
+            </div>
+            <button class="btn" onclick="goToStep(1)" style="font-size:11px">&#8592; Start over</button>
+            <button class="btn btn-gold" id="submit-btn" onclick="submitPlaybook()" disabled>Submit playbook</button>
+          </div>
+        </div>
+
+        <!-- Current playbook list -->
+        <div class="card">
+          <div class="card-title">
+            &#127944; Current playbook
+            <span id="pb-play-count" style="margin-left:auto;font-size:11px;color:var(--text2)">0 / 125 plays</span>
+          </div>
+          <div id="pb-panel">
+            <div class="empty-state" style="padding:1rem">No plays added yet</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ LIBRARY PAGE ══════════════════ -->
+<div id="page-library" class="page">
+  <div class="stats-bar" id="lib-stats"></div>
+  <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+    <input type="text" placeholder="Search playbooks…" id="lib-search" oninput="renderLibrary()" style="flex:1;min-width:180px">
+    <select id="lib-scheme-filter" onchange="renderLibrary()">
+      <option value="">All schemes</option>
+      <option>Pistol/Spread</option>
+      <option>Multiple/Pro Style</option>
+      <option>Air Raid</option>
+      <option>Spread Option/Power Option</option>
+      <option>Veer &amp; Shoot/Run &amp; Shoot</option>
+    </select>
+    <button class="btn btn-primary" onclick="showPage('builder')">+ New playbook</button>
+  </div>
+  <div class="lib-grid" id="lib-grid">
+    <div class="empty-state">No playbooks submitted yet.</div>
+  </div>
+</div>
+
+<!-- ══════════════════ RULES PAGE ══════════════════ -->
+<div id="page-rules" class="page">
+  <div class="card">
+    <div class="card-title">&#128203; SFL CFB 26 — Offensive Playbook Rules</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <tr style="background:var(--surface2)"><th style="padding:7px 10px;text-align:left;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2)">Rule</th><th style="padding:7px 10px;text-align:left;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2)">Limit</th><th style="padding:7px 10px;text-align:left;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2)">Notes</th></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Max total plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>125</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Excludes Goal Line, Hail Mary, Special Teams</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Pass plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>40 min / 85 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Max drops to 55 if you use a 3rd run concept</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Run plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>40 min</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Max 2 run concepts (or 3 with penalty)</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">RPO plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>15 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">20 max with 3rd concept. Count as pass plays only</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Auto-motion pass</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>25 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">No limit on auto-motion run plays</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Trick plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>10 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Must declare before season. Cannot change mid-season</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Formation sets</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>12 min</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Excludes Goal Line and Special Teams</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">RB in backfield sets</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>8 min</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">At least 8 sets must have an RB</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">3-TE sets</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>3 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)"></td></tr>
+      <tr><td style="padding:7px 10px">Weekly play changes</td><td style="padding:7px 10px"><strong>20 max</strong></td><td style="padding:7px 10px;color:var(--text2)">Cannot change run concept mid-season</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title">&#128683; Banned formations</div>
+    <div class="tag-row">
+      <span class="badge badge-any" style="font-size:11px;padding:4px 10px">Flexbone</span>
+      <span class="badge badge-any" style="font-size:11px;padding:4px 10px">Any Empty Bunch Quads variation</span>
+      <span class="badge badge-any" style="font-size:11px;padding:4px 10px">Any Gate / Swinging Gate</span>
+    </div>
+    <p style="font-size:11px;color:var(--text2);margin-top:8px">Wishbone allowed only if you delete all Goal Line plays — it becomes your new Goal Line set.</p>
+  </div>
+  <div class="card">
+    <div class="card-title">&#127939; Run concept definitions</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:var(--green-bg);border-radius:var(--radius-sm);padding:10px 12px">
+        <div style="font-size:12px;font-weight:700;color:var(--green-text);margin-bottom:4px">Zone</div>
+        <div style="font-size:11px;color:var(--green-text);opacity:.85;line-height:1.6">Inside Zone, Outside Zone, Sweep, Stretch, Duo, Off Tackle, Wide Zone, Slash, QB Zone, Read Option, Speed Option, Midline, Any Jet Motion Zone Run</div>
+      </div>
+      <div style="background:#faece7;border-radius:var(--radius-sm);padding:10px 12px">
+        <div style="font-size:12px;font-weight:700;color:#712b13;margin-bottom:4px">Power</div>
+        <div style="font-size:11px;color:#712b13;opacity:.85;line-height:1.6">Dive, Slam, Power O, Dart, Base, Iso, Lead, Blast, Punch, Buck, Smash, QB Power, Power Option, Any Jet Motion Power Run</div>
+      </div>
+      <div style="background:var(--amber-bg);border-radius:var(--radius-sm);padding:10px 12px">
+        <div style="font-size:12px;font-weight:700;color:var(--amber-text);margin-bottom:4px">Counter</div>
+        <div style="font-size:11px;color:var(--amber-text);opacity:.85;line-height:1.6">Counter, GT Counter, H/G Counter, QB Wrap, QB Counter, Veer, Triple Option, Slot Option, Any Jet Motion Counter Run</div>
+      </div>
+      <div style="background:var(--purple-bg);border-radius:var(--radius-sm);padding:10px 12px">
+        <div style="font-size:12px;font-weight:700;color:var(--purple-text);margin-bottom:4px">Trap</div>
+        <div style="font-size:11px;color:var(--purple-text);opacity:.85;line-height:1.6">01 Trap, 56 Trap, Trap, Wham, Wide Trap, Pin &amp; Pull Toss, Crack Toss, Toss, Zone Toss, QB Trap</div>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--text2);margin-top:8px"><strong>HB Draw &amp; HB Direct</strong> may be placed in any concept. HB Direct counts as a trick play.</p>
+  </div>
+  <div class="card">
+    <div class="card-title">&#127897; Audible requirements</div>
+    <p style="font-size:12px;color:var(--text2);line-height:1.8">Every formation/set must have: <strong>1 Quick Pass · 1 Run · 1 Deep Pass · 1 Play-Action</strong><br>RPOs, Option Plays, and Trick Plays may NOT be assigned as audibles.</p>
+  </div>
+  <div class="card">
+    <div class="card-title">&#127909; Creation protocol</div>
+    <p style="font-size:12px;color:var(--text2);line-height:1.8">You must stream the full creation of your playbook. Start by removing all non-goal-line plays. When finished, do a full play-by-play review, save as <strong>SFL_YourTeamName</strong>, then end stream.</p>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let DB = null;
+let currentStep = 1;
+let selectedConcepts = [];
+let currentPB = { teamName:'', scheme:'', concepts:[], plays:[] };
+let sourceTeam = '';
+let playbooks = [];
+
+const BANNED = ['flexbone','empty-bunch-quads','gun-empty-bunch-quads','gun-bunch-quads'];
+const RPO_ZONE_KEYS   = ['rpo-read','rpo-peek','rpo-glance','rpo-bubble','rpo-zone','rpo-x-glance'];
+const RPO_POWER_KEYS  = ['rpo-alert','rpo-split'];
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+async function init() {
+  // Load saved playbooks
+  try {
+    const saved = await window.storage.get('sfl_playbooks_v3');
+    if (saved) playbooks = JSON.parse(saved.value);
+  } catch(e) { playbooks = []; }
+
+  // Load play database
+  try {
+    const r = await fetch('./plays_structured.json');
+    DB = await r.json();
+    console.log('DB loaded');
+  } catch(e) {
+    console.error('Could not load plays_structured.json', e);
+    document.getElementById('page-builder').innerHTML = `
+      <div class="card"><div class="alert alert-err">
+        &#9888; Could not load play database. Make sure plays_structured.json is in the same folder as index.html.
+      </div></div>`;
+  }
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-btn')[['builder','library','rules'].indexOf(name)].classList.add('active');
+  if (name === 'library') renderLibrary();
+}
+
+function goToStep(n) {
+  currentStep = n;
+  ['setup-panel','concepts-panel','build-panel'].forEach((id,i) => {
+    document.getElementById(id).style.display = i === n-1 ? '' : 'none';
+  });
+  document.querySelectorAll('.step').forEach((el,i) => {
+    el.classList.toggle('active', i === n-1);
+    el.classList.toggle('done', i < n-1);
+  });
+  if (n === 3) initBuildPanel();
+}
+
+// ── Step 1: Setup ──────────────────────────────────────────────────────────
+function onTeamNameInput() {
+  currentPB.teamName = document.getElementById('team-name-input').value.trim();
+  checkSetupComplete();
+}
+
+function onSchemeChange() {
+  const scheme = document.getElementById('scheme-select').value;
+  currentPB.scheme = scheme;
+  const sel = document.getElementById('source-team-select');
+  sel.innerHTML = '<option value="">— Select team to browse —</option>';
+  sel.disabled = !scheme;
+  if (scheme && DB && DB[scheme]) {
+    const teams = Object.keys(DB[scheme]).sort();
+    teams.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = DB[scheme][t].teamName || t.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+      sel.appendChild(opt);
+    });
+  }
+  checkSetupComplete();
+}
+
+function onSourceTeamChange() {
+  sourceTeam = document.getElementById('source-team-select').value;
+  checkSetupComplete();
+}
+
+function checkSetupComplete() {
+  const ok = currentPB.teamName && currentPB.scheme && sourceTeam;
+  document.getElementById('setup-next-btn').disabled = !ok;
+}
+
+// ── Step 2: Concepts ───────────────────────────────────────────────────────
+function toggleConcept(c) {
+  const idx = selectedConcepts.indexOf(c);
+  if (idx >= 0) {
+    selectedConcepts.splice(idx, 1);
+  } else {
+    if (selectedConcepts.length >= 3) return;
+    selectedConcepts.push(c);
+  }
+  currentPB.concepts = selectedConcepts;
+
+  // Update UI
+  ['Zone','Power','Counter','Trap'].forEach(name => {
+    const el = document.getElementById('concept-' + name);
+    const sel = selectedConcepts.includes(name);
+    el.classList.toggle('selected', sel);
+    el.classList.toggle('disabled', !sel && selectedConcepts.length >= 3);
+  });
+
+  const warn = document.getElementById('concept-warning');
+  warn.classList.toggle('show', selectedConcepts.length === 3);
+
+  const n = selectedConcepts.length;
+  document.getElementById('concepts-count').textContent =
+    n === 0 ? 'Select 1–3 concepts' :
+    n === 1 ? '1 concept selected — select 1 more (optional 3rd)' :
+    n === 2 ? '2 concepts selected ✓ — optionally add a 3rd' :
+              '3 concepts selected — max pass plays: 55';
+  document.getElementById('concepts-next-btn').disabled = n === 0;
+}
+
+// ── Step 3: Build ──────────────────────────────────────────────────────────
+function initBuildPanel() {
+  document.getElementById('browser-team-label').textContent =
+    '— ' + (DB?.[currentPB.scheme]?.[sourceTeam]?.teamName || sourceTeam);
+  document.getElementById('pb-save-name').textContent =
+    'SFL_' + currentPB.teamName.replace(/\s+/g, '');
+  populateFormationSelect();
+  renderValidation();
+  renderPBPanel();
+}
+
+function populateFormationSelect() {
+  if (!DB || !currentPB.scheme || !sourceTeam) return;
+  const formations = DB[currentPB.scheme]?.[sourceTeam]?.formations || {};
+  const sel = document.getElementById('formation-select');
+  sel.innerHTML = '<option value="">— Select formation —</option>';
+  Object.entries(formations).sort((a,b) => a[1].name.localeCompare(b[1].name)).forEach(([slug, fdata]) => {
+    const banned = BANNED.some(b => slug.includes(b));
+    const opt = document.createElement('option');
+    opt.value = slug;
+    opt.textContent = fdata.name + (banned ? ' ⛔' : '');
+    sel.appendChild(opt);
+  });
+}
+
+function onFormationChange() { renderPlayBrowser(); }
+
+function renderPlayBrowser() {
+  if (!DB || !currentPB.scheme || !sourceTeam) return;
+  const formation = document.getElementById('formation-select').value;
+  const typeFilter = document.getElementById('type-filter').value;
+  const search = document.getElementById('play-search').value.toLowerCase();
+  const grid = document.getElementById('play-browser-grid');
+
+  if (!formation) {
+    grid.innerHTML = '<div class="empty-state">Select a formation above to browse plays</div>';
+    return;
+  }
+
+  const banned = BANNED.some(b => formation.includes(b));
+  if (banned) {
+    grid.innerHTML = '<div class="empty-state" style="color:var(--red)">⛔ This formation is banned by SFL rules and cannot be used.</div>';
+    return;
+  }
+
+  const fdata = DB[currentPB.scheme]?.[sourceTeam]?.formations?.[formation];
+  if (!fdata) { grid.innerHTML = '<div class="empty-state">Formation not found</div>'; return; }
+
+  const inPB = new Set(currentPB.plays.map(p => p.key));
+
+  let plays = fdata.plays.filter(p => {
+    if (search && !p.name.toLowerCase().includes(search) && !p.slug.includes(search)) return false;
+    if (typeFilter === 'pass'  && !(p.isPass && !p.isRPO)) return false;
+    if (typeFilter === 'run'   && !p.isRun) return false;
+    if (typeFilter === 'rpo'   && !p.isRPO) return false;
+    if (typeFilter === 'trick' && !p.isTrick) return false;
+    return true;
+  });
+
+  if (!plays.length) {
+    grid.innerHTML = '<div class="empty-state">No plays match your filter</div>';
+    return;
+  }
+
+  // Check if run play matches chosen concepts
+  function isRunAllowed(p) {
+    if (!p.isRun || p.runConcept === 'Any') return true;
+    return selectedConcepts.includes(p.runConcept);
+  }
+
+  // Check RPO alignment
+  function isRPOAllowed(p) {
+    if (!p.isRPO) return true;
+    const slug = p.slug.toLowerCase();
+    const zoneType = RPO_ZONE_KEYS.some(k => slug.includes(k));
+    const powerType = RPO_POWER_KEYS.some(k => slug.includes(k));
+    if (zoneType) return selectedConcepts.some(c => c === 'Zone' || c === 'Counter');
+    if (powerType) return selectedConcepts.some(c => c === 'Power' || c === 'Trap');
+    return true;
+  }
+
+  const v = validate(currentPB);
+
+  grid.innerHTML = plays.map(p => {
+    const key = `${sourceTeam}||${formation}||${p.slug}`;
+    const already = inPB.has(key);
+    const runOk = isRunAllowed(p);
+    const rpoOk = isRPOAllowed(p);
+    const allowed = runOk && rpoOk;
+    const overLimit = !already && currentPB.plays.length >= 125;
+    const trickFull = !already && p.isTrick && v.trickCount >= 10;
+    const canAdd = !overLimit && !trickFull && allowed;
+
+    return `<div class="play-card ${already?'in-pb':''} ${!allowed?'blocked':''}">
+      <div class="play-name">${p.name}</div>
+      <div class="play-type">
+        ${p.isRPO   ? '<span class="badge badge-rpo">RPO</span>' : ''}
+        ${p.isTrick ? '<span class="badge badge-trick">Trick</span>' : ''}
+        ${p.isRun && !p.isRPO ? `<span class="badge badge-${(p.runConcept||'any').toLowerCase()}">${p.runConcept||'Run'}</span>` : ''}
+        ${p.isPass && !p.isRPO && !p.isTrick ? '<span class="badge badge-pass">Pass</span>' : ''}
+        ${p.isAutoMotion ? '<span class="badge badge-auto">Auto-motion</span>' : ''}
+      </div>
+      ${!allowed ? `<div style="font-size:10px;color:var(--red);margin-top:5px">${!runOk?'Wrong run concept':''} ${!rpoOk?'RPO concept mismatch':''}</div>` : ''}
+      <button class="btn btn-sm play-add-btn ${already?'btn-danger':''}"
+        onclick="togglePlay('${key}','${formation}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept||''}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}')"
+        ${!canAdd&&!already?'disabled':''}>
+        ${already ? 'Remove' : 'Add'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function togglePlay(key, formation, slug, name, isRun, runConcept, isPass, isRPO, isTrick, isAutoMotion) {
+  const idx = currentPB.plays.findIndex(p => p.key === key);
+  if (idx >= 0) {
+    currentPB.plays.splice(idx, 1);
+  } else {
+    currentPB.plays.push({
+      key, formation, slug, name,
+      isRun: isRun === 'true', runConcept,
+      isPass: isPass === 'true', isRPO: isRPO === 'true',
+      isTrick: isTrick === 'true', isAutoMotion: isAutoMotion === 'true',
+    });
+  }
+  renderPlayBrowser();
+  renderValidation();
+  renderPBPanel();
+}
+
+// ── Validation ─────────────────────────────────────────────────────────────
+function validate(pb) {
+  const plays = pb.plays || [];
+  const concepts = pb.concepts || [];
+  const use3 = concepts.length >= 3;
+  const maxPass = use3 ? 55 : 85;
+  const maxRPO  = use3 ? 20 : 15;
+
+  const total      = plays.length;
+  const passPlays  = plays.filter(p => p.isPass && !p.isRPO);
+  const runPlays   = plays.filter(p => p.isRun);
+  const rpoPlays   = plays.filter(p => p.isRPO);
+  const trickPlays = plays.filter(p => p.isTrick);
+  const autoPass   = plays.filter(p => p.isAutoMotion && (p.isPass || p.isRPO));
+  const sets       = new Set(plays.map(p => p.formation));
+  const passTotal  = passPlays.length + rpoPlays.length;
+
+  const trickCount = trickPlays.length;
+
+  return {
+    total, passTotal, runCount: runPlays.length, rpoCount: rpoPlays.length,
+    trickCount, autoPassCount: autoPass.length, setCount: sets.size,
+    maxPass, maxRPO,
+    errors: [
+      total > 125                    && `Total plays: ${total}/125 max`,
+      passTotal < 40                 && `Pass plays: ${passTotal} — need 40 min`,
+      passTotal > maxPass            && `Pass plays: ${passTotal} — max is ${maxPass}`,
+      runPlays.length < 40           && `Run plays: ${runPlays.length} — need 40 min`,
+      rpoPlays.length > maxRPO       && `RPOs: ${rpoPlays.length} — max ${maxRPO}`,
+      autoPass.length > 25           && `Auto-motion pass: ${autoPass.length} — max 25`,
+      trickPlays.length > 10         && `Trick plays: ${trickPlays.length} — max 10`,
+      sets.size < 12                 && `Formation sets: ${sets.size} — need 12 min`,
+    ].filter(Boolean),
+    warnings: [
+      passTotal === 0 && runPlays.length === 0 && 'Add plays to get started',
+    ].filter(Boolean),
+  };
+}
+
+function renderValidation() {
+  const v = validate(currentPB);
+  const isValid = v.errors.length === 0;
+
+  // Meters
+  function pct(n, max) { return Math.min(100, Math.round(n / max * 100)); }
+  function cls(n, min, max) { return n < min ? 'err' : n > max ? 'err' : 'ok'; }
+
+  document.getElementById('meters').innerHTML = `
+    <div class="meter">
+      <div class="meter-val ${v.total > 125 ? 'err' : 'ok'}">${v.total}</div>
+      <div class="meter-label">Total plays</div>
+      <div class="meter-limit">max 125</div>
+      <div class="pbar"><div class="pbar-fill ${v.total>125?'err':'ok'}" style="width:${pct(v.total,125)}%"></div></div>
+    </div>
+    <div class="meter">
+      <div class="meter-val ${cls(v.passTotal,40,v.maxPass)}">${v.passTotal}</div>
+      <div class="meter-label">Pass plays</div>
+      <div class="meter-limit">40–${v.maxPass}</div>
+      <div class="pbar"><div class="pbar-fill ${cls(v.passTotal,40,v.maxPass)}" style="width:${pct(v.passTotal,v.maxPass)}%"></div></div>
+    </div>
+    <div class="meter">
+      <div class="meter-val ${v.runCount < 40 ? 'err' : 'ok'}">${v.runCount}</div>
+      <div class="meter-label">Run plays</div>
+      <div class="meter-limit">min 40</div>
+      <div class="pbar"><div class="pbar-fill ${v.runCount<40?'warn':'ok'}" style="width:${pct(v.runCount,80)}%"></div></div>
+    </div>
+    <div class="meter">
+      <div class="meter-val ${v.rpoCount > v.maxRPO ? 'err' : 'ok'}">${v.rpoCount}</div>
+      <div class="meter-label">RPOs</div>
+      <div class="meter-limit">max ${v.maxRPO}</div>
+      <div class="pbar"><div class="pbar-fill ${v.rpoCount>v.maxRPO?'err':'ok'}" style="width:${pct(v.rpoCount,v.maxRPO)}%"></div></div>
+    </div>
+    <div class="meter">
+      <div class="meter-val ${v.trickCount > 10 ? 'err' : 'ok'}">${v.trickCount}</div>
+      <div class="meter-label">Trick plays</div>
+      <div class="meter-limit">max 10</div>
+      <div class="pbar"><div class="pbar-fill ${v.trickCount>10?'err':'ok'}" style="width:${pct(v.trickCount,10)}%"></div></div>
+    </div>
+    <div class="meter">
+      <div class="meter-val ${v.setCount < 12 ? 'err' : 'ok'}">${v.setCount}</div>
+      <div class="meter-label">Sets</div>
+      <div class="meter-limit">min 12</div>
+      <div class="pbar"><div class="pbar-fill ${v.setCount<12?'warn':'ok'}" style="width:${pct(v.setCount,20)}%"></div></div>
+    </div>
+    <div class="meter">
+      <div class="meter-val ${v.autoPassCount > 25 ? 'err' : 'ok'}">${v.autoPassCount}</div>
+      <div class="meter-label">Auto-motion pass</div>
+      <div class="meter-limit">max 25</div>
+      <div class="pbar"><div class="pbar-fill ${v.autoPassCount>25?'err':'ok'}" style="width:${pct(v.autoPassCount,25)}%"></div></div>
+    </div>
+  `;
+
+  // Checklist
+  const allItems = [
+    ...v.errors.map(e => ({ type:'err', text:e })),
+    ...v.warnings.map(w => ({ type:'warn', text:w })),
+    v.total <= 125 && v.total > 0                && { type:'ok', text:`Total plays: ${v.total}/125` },
+    v.passTotal >= 40 && v.passTotal <= v.maxPass && { type:'ok', text:`Pass plays: ${v.passTotal} (40–${v.maxPass})` },
+    v.runCount >= 40                              && { type:'ok', text:`Run plays: ${v.runCount} (40+ required)` },
+    v.rpoCount <= v.maxRPO                        && { type:'ok', text:`RPOs: ${v.rpoCount}/${v.maxRPO} max` },
+    v.trickCount <= 10                            && { type:'ok', text:`Trick plays: ${v.trickCount}/10 max` },
+    v.setCount >= 12                              && { type:'ok', text:`Sets: ${v.setCount} (12+ required)` },
+    v.autoPassCount <= 25                         && { type:'ok', text:`Auto-motion pass: ${v.autoPassCount}/25 max` },
+  ].filter(Boolean);
+
+  document.getElementById('val-list').innerHTML = allItems.map(i =>
+    `<div class="val-item ${i.type}"><div class="val-dot"></div>${i.text}</div>`
+  ).join('');
+
+  const badge = document.getElementById('val-status-badge');
+  if (isValid && v.total > 0) {
+    badge.innerHTML = '<span style="color:var(--green);font-weight:600">&#10003; Valid</span>';
+  } else if (v.errors.length > 0) {
+    badge.innerHTML = `<span style="color:var(--red)">${v.errors.length} error${v.errors.length>1?'s':''}</span>`;
+  } else {
+    badge.textContent = '';
+  }
+
+  document.getElementById('submit-btn').disabled = !isValid || v.total === 0;
+  document.getElementById('pb-play-count').textContent = `${v.total} / 125 plays`;
+}
+
+function renderPBPanel() {
+  const panel = document.getElementById('pb-panel');
+  if (!currentPB.plays.length) {
+    panel.innerHTML = '<div class="empty-state" style="padding:1rem">No plays added yet</div>';
+    return;
+  }
+  const grouped = {};
+  currentPB.plays.forEach(p => {
+    if (!grouped[p.formation]) grouped[p.formation] = [];
+    grouped[p.formation].push(p);
+  });
+  panel.innerHTML = Object.entries(grouped).map(([f, plays]) => `
+    <div class="formation-group">
+      <div class="formation-label">${f.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())} (${plays.length})</div>
+      ${plays.map(p => `
+        <div class="pb-play">
+          <div class="pb-play-name">${p.name}</div>
+          <div class="pb-play-right">
+            ${p.isRPO ? '<span class="badge badge-rpo">RPO</span>' : ''}
+            ${p.isTrick ? '<span class="badge badge-trick">Trick</span>' : ''}
+            ${p.isRun && !p.isRPO ? `<span class="badge badge-${(p.runConcept||'any').toLowerCase()}">${p.runConcept||'Run'}</span>` : ''}
+            ${p.isPass && !p.isRPO && !p.isTrick ? '<span class="badge badge-pass">Pass</span>' : ''}
+            <button class="rm-btn" onclick="togglePlay('${p.key}','${p.formation}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}')">&#215;</button>
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+// ── Submit ─────────────────────────────────────────────────────────────────
+async function submitPlaybook() {
+  const v = validate(currentPB);
+  if (v.errors.length > 0) return;
+
+  const pb = {
+    id: Date.now(),
+    teamName: currentPB.teamName,
+    saveName: 'SFL_' + currentPB.teamName.replace(/\s+/g,''),
+    scheme: currentPB.scheme,
+    concepts: currentPB.concepts,
+    plays: currentPB.plays,
+    submitted: new Date().toLocaleDateString(),
+    passCount: currentPB.plays.filter(p=>p.isPass&&!p.isRPO).length + currentPB.plays.filter(p=>p.isRPO).length,
+    runCount: currentPB.plays.filter(p=>p.isRun).length,
+    rpoCount: currentPB.plays.filter(p=>p.isRPO).length,
+    trickCount: currentPB.plays.filter(p=>p.isTrick).length,
+    setCount: new Set(currentPB.plays.map(p=>p.formation)).size,
+  };
+
+  const existing = playbooks.findIndex(p => p.teamName.toLowerCase() === pb.teamName.toLowerCase());
+  if (existing >= 0) {
+    if (!confirm(`A playbook for "${pb.teamName}" already exists. Replace it?`)) return;
+    playbooks[existing] = pb;
+  } else {
+    playbooks.push(pb);
+  }
+
+  try {
+    await window.storage.set('sfl_playbooks_v3', JSON.stringify(playbooks));
+  } catch(e) {}
+
+  alert(`✅ Playbook submitted!\nSave name: ${pb.saveName}\n\nView it in the Library tab.`);
+  showPage('library');
+}
+
+// ── Library ────────────────────────────────────────────────────────────────
+function renderLibrary() {
+  const search = (document.getElementById('lib-search')?.value||'').toLowerCase();
+  const scheme = document.getElementById('lib-scheme-filter')?.value||'';
+  const filtered = playbooks.filter(pb => {
+    if (search && !pb.teamName.toLowerCase().includes(search)) return false;
+    if (scheme && pb.scheme !== scheme) return false;
+    return true;
+  });
+
+  const valid = playbooks.filter(pb => validate(pb).errors.length === 0).length;
+  document.getElementById('lib-stats').innerHTML = `
+    <div class="stat"><div class="stat-val">${playbooks.length}</div><div class="stat-lbl">Playbooks</div></div>
+    <div class="stat"><div class="stat-val">${valid}</div><div class="stat-lbl">Valid</div></div>
+    <div class="stat"><div class="stat-val">${playbooks.length - valid}</div><div class="stat-lbl">Need fixes</div></div>
+    <div class="stat"><div class="stat-val">${playbooks.reduce((s,pb)=>s+pb.plays.length,0)}</div><div class="stat-lbl">Total plays</div></div>
+  `;
+
+  const grid = document.getElementById('lib-grid');
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="empty-state">No playbooks yet.</div>';
+    return;
+  }
+
+  const schemeCls = s => ({'Pistol/Spread':'sch-spread','Multiple/Pro Style':'sch-multi','Air Raid':'sch-air','Spread Option/Power Option':'sch-opt','Veer & Shoot/Run & Shoot':'sch-veer'}[s]||'sch-spread');
+
+  grid.innerHTML = filtered.map((pb, i) => {
+    const ri = playbooks.indexOf(pb);
+    const v = validate(pb);
+    const isValid = v.errors.length === 0;
+    const conceptBadges = (pb.concepts||[]).map(c =>
+      `<span class="badge badge-${c.toLowerCase()}">${c}</span>`).join('');
+    const fCounts = {};
+    (pb.plays||[]).forEach(p => { fCounts[p.formation] = (fCounts[p.formation]||0)+1; });
+    const topForms = Object.entries(fCounts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([f,n])=>`${f.replace(/-/g,' ')} (${n})`).join(' · ');
+
+    return `<div class="lib-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <div>
+          <div class="lib-card-name">${pb.saveName}</div>
+          <div class="lib-card-meta">${pb.teamName} · Submitted ${pb.submitted||'—'}</div>
+          <div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">
+            <span class="badge badge-scheme ${schemeCls(pb.scheme)}">${pb.scheme}</span>
+            ${conceptBadges}
+            ${isValid
+              ? '<span style="font-size:10px;color:var(--green-text);font-weight:600">&#10003; Valid</span>'
+              : `<span style="font-size:10px;color:var(--red);font-weight:600">&#9888; ${v.errors.length} error${v.errors.length>1?'s':''}</span>`}
+          </div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-sm" onclick="loadForEdit(${ri})">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deletePB(${ri})">&#128465;</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:8px 0">
+        ${[['Pass',pb.passCount],['Run',pb.runCount],['RPO',pb.rpoCount],['Trick',pb.trickCount],['Sets',pb.setCount]].map(([l,n])=>`
+          <div style="text-align:center;background:var(--surface2);border-radius:var(--radius-sm);padding:5px">
+            <div style="font-size:14px;font-weight:700">${n||0}</div>
+            <div style="font-size:9px;color:var(--text2)">${l}</div>
+          </div>`).join('')}
+      </div>
+      ${v.errors.length ? `<div class="alert alert-err" style="margin:6px 0 0;font-size:10px">${v.errors[0]}</div>` : ''}
+      <div style="font-size:10px;color:var(--text3);margin-top:6px">${topForms}</div>
+      <div class="lib-card-chips">
+        ${(pb.plays||[]).slice(0,15).map(p=>`<span class="lib-chip">${p.name}</span>`).join('')}
+        ${(pb.plays||[]).length > 15 ? `<span class="lib-chip">+${pb.plays.length-15} more</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function loadForEdit(idx) {
+  const pb = playbooks[idx];
+  currentPB = { teamName: pb.teamName, scheme: pb.scheme, concepts: pb.concepts||[], plays: JSON.parse(JSON.stringify(pb.plays||[])) };
+  selectedConcepts = [...currentPB.concepts];
+  document.getElementById('team-name-input').value = pb.teamName;
+  document.getElementById('scheme-select').value = pb.scheme;
+  onSchemeChange();
+  setTimeout(() => {
+    document.getElementById('source-team-select').value = sourceTeam || Object.keys(DB[pb.scheme]||{})[0];
+    sourceTeam = document.getElementById('source-team-select').value;
+    selectedConcepts.forEach(c => toggleConcept(c));
+    selectedConcepts = [...currentPB.concepts];
+    showPage('builder');
+    goToStep(3);
+  }, 100);
+}
+
+function deletePB(idx) {
+  if (!confirm('Delete this playbook?')) return;
+  playbooks.splice(idx, 1);
+  window.storage.set('sfl_playbooks_v3', JSON.stringify(playbooks)).catch(()=>{});
+  renderLibrary();
+}
+
+init();
+</script>
+</body>
+</html>
