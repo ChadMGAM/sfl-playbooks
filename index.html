@@ -668,22 +668,25 @@ function renderPlayBrowser() {
         ${isGoalLine ? '<span class="badge badge-any">Goal line</span>' : ''}
       </div>
       ${!allowed ? `<div style="font-size:10px;color:var(--red);margin-top:5px">${!runOk?'Wrong run concept':''} ${!rpoOk?'RPO concept mismatch':''}</div>` : ''}
-      <button class="btn btn-sm play-add-btn ${already?'btn-danger':''}"
-        onclick="togglePlay('${key}','${formation}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept||''}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}','${isGoalLine}')"
-        ${!canAdd&&!already?'disabled':''}>
-        ${already ? 'Remove' : 'Add'}
-      </button>
+      <div style="display:flex;gap:5px;margin-top:7px">
+        <button class="btn btn-sm play-add-btn ${already?'btn-danger':''}" style="flex:1"
+          onclick="togglePlay('${key}','${formation}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept||''}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}','${isGoalLine}','${(p.url||'').replace(/'/g,"\\'")}'"
+          ${!canAdd&&!already?'disabled':''}>
+          ${already ? 'Remove' : 'Add'}
+        </button>
+        ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener" class="btn btn-sm" title="View play on cfb.fan" style="padding:4px 8px;text-decoration:none">&#128279;</a>` : ''}
+      </div>
     </div>`;
   }).join('');
 }
 
-function togglePlay(key, formation, slug, name, isRun, runConcept, isPass, isRPO, isTrick, isAutoMotion, isGoalLine) {
+function togglePlay(key, formation, slug, name, isRun, runConcept, isPass, isRPO, isTrick, isAutoMotion, isGoalLine, url) {
   const idx = currentPB.plays.findIndex(p => p.key === key);
   if (idx >= 0) {
     currentPB.plays.splice(idx, 1);
   } else {
     currentPB.plays.push({
-      key, formation, slug, name,
+      key, formation, slug, name, url: url || '',
       isRun: isRun === 'true', runConcept,
       isPass: isPass === 'true', isRPO: isRPO === 'true',
       isTrick: isTrick === 'true', isAutoMotion: isAutoMotion === 'true',
@@ -832,26 +835,41 @@ function renderPBPanel() {
     panel.innerHTML = '<div class="empty-state" style="padding:1rem">No plays added yet</div>';
     return;
   }
+  // Sort: goal line last, then by formation name
   const grouped = {};
   currentPB.plays.forEach(p => {
     if (!grouped[p.formation]) grouped[p.formation] = [];
     grouped[p.formation].push(p);
   });
-  panel.innerHTML = Object.entries(grouped).map(([f, plays]) => `
+  const sortedGroups = Object.entries(grouped).sort((a,b) => {
+    const aGL = a[1][0].isGoalLine;
+    const bGL = b[1][0].isGoalLine;
+    if (aGL !== bGL) return aGL ? 1 : -1;
+    return a[0].localeCompare(b[0]);
+  });
+  panel.innerHTML = sortedGroups.map(([f, plays]) => {
+    const isGL = plays[0].isGoalLine;
+    return `
     <div class="formation-group">
-      <div class="formation-label">${f.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())} (${plays.length})</div>
+      <div class="formation-label" style="${isGL?'color:var(--text3);font-style:italic':''}">
+        ${f.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())} (${plays.length})${isGL?' — goal line':''}
+      </div>
       ${plays.map(p => `
         <div class="pb-play">
-          <div class="pb-play-name">${p.name}</div>
+          <div class="pb-play-name">
+            ${p.name}
+            ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener" title="View on cfb.fan" style="color:var(--text3);font-size:11px;margin-left:5px;text-decoration:none" onmouseover="this.style.color='var(--navy)'" onmouseout="this.style.color='var(--text3)'">&#128279;</a>` : ''}
+          </div>
           <div class="pb-play-right">
             ${p.isRPO ? '<span class="badge badge-rpo">RPO</span>' : ''}
             ${p.isTrick ? '<span class="badge badge-trick">Trick</span>' : ''}
             ${p.isRun && !p.isRPO ? `<span class="badge badge-${(p.runConcept||'any').toLowerCase()}">${p.runConcept||'Run'}</span>` : ''}
             ${p.isPass && !p.isRPO && !p.isTrick ? '<span class="badge badge-pass">Pass</span>' : ''}
-            <button class="rm-btn" onclick="togglePlay('${p.key}','${p.formation}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}','${p.isGoalLine||false}')">&#215;</button>
+            <button class="rm-btn" onclick="togglePlay('${p.key}','${p.formation}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}','${p.isGoalLine||false}','${(p.url||'').replace(/'/g,"\\'")}')">&#215;</button>
           </div>
         </div>`).join('')}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ── Submit ─────────────────────────────────────────────────────────────────
