@@ -419,6 +419,7 @@
       <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Max total plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>125</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Excludes Goal Line, Hail Mary, Special Teams</td></tr>
       <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Pass plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>40 min / 85 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Max drops to 55 if you use a 3rd run concept</td></tr>
       <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Run plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>40 min</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Max 2 run concepts (or 3 with penalty)</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Option plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>15 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">20 max with 3rd run concept. Counted within run plays</td></tr>
       <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">RPO plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>15 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">20 max with 3rd concept. Count as pass plays only</td></tr>
       <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Auto-motion pass</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>25 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">No limit on auto-motion run plays</td></tr>
       <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Trick plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>10 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Must declare before season. Cannot change mid-season</td></tr>
@@ -713,6 +714,7 @@ function renderPlayBrowser() {
       <div class="play-type">
         ${p.isRPO   ? '<span class="badge badge-rpo">RPO</span>' : ''}
         ${p.isTrick ? '<span class="badge badge-trick">Trick</span>' : ''}
+        ${p.isOption ? '<span class="badge badge-auto">Option</span>' : ''}
         ${p.isRun && !p.isRPO ? `<span class="badge badge-${(p.runConcept||'any').toLowerCase()}">${p.runConcept||'Run'}</span>` : ''}
         ${p.isPass && !p.isRPO && !p.isTrick ? '<span class="badge badge-pass">Pass</span>' : ''}
         ${p.isAutoMotion ? '<span class="badge badge-auto">Motion</span>' : ''}
@@ -1024,37 +1026,40 @@ function validate(pb) {
   const allPlays = pb.plays || [];
   const concepts = pb.concepts || [];
   const use3 = concepts.length >= 3;
-  const maxPass = use3 ? 55 : 85;
-  const maxRPO  = use3 ? 20 : 15;
+  const maxPass   = use3 ? 55 : 85;
+  const maxRPO    = use3 ? 20 : 15;
+  const maxOption = use3 ? 20 : 15;
 
   // Goal line / hail mary excluded from play count, formation count, and pass/run minimums
   const plays   = allPlays.filter(p => !p.isGoalLine);
 
-  const total      = plays.length;
-  const passPlays  = plays.filter(p => p.isPass && !p.isRPO);
-  const runPlays   = plays.filter(p => p.isRun);
-  const rpoPlays   = plays.filter(p => p.isRPO);
-  const trickPlays = allPlays.filter(p => p.isTrick); // trick limit counts ALL plays incl. goal line
-  const autoPass   = plays.filter(p => p.isAutoMotion && (p.isPass || p.isRPO));
-  const sets       = new Set(plays.map(p => p.formation)); // goal line sets excluded
-  const passTotal  = passPlays.length + rpoPlays.length;
-
-  const trickCount = trickPlays.length;
+  const total       = plays.length;
+  const passPlays   = plays.filter(p => p.isPass && !p.isRPO);
+  const runPlays    = plays.filter(p => p.isRun);
+  const rpoPlays    = plays.filter(p => p.isRPO);
+  const optionPlays = plays.filter(p => p.isOption);
+  const trickPlays  = allPlays.filter(p => p.isTrick);
+  const autoPass    = plays.filter(p => p.isAutoMotion && (p.isPass || p.isRPO));
+  const sets        = new Set(plays.map(p => p.formation));
+  const passTotal   = passPlays.length + rpoPlays.length;
+  const trickCount  = trickPlays.length;
+  const optionCount = optionPlays.length;
 
   return {
     total, passTotal, runCount: runPlays.length, rpoCount: rpoPlays.length,
-    trickCount, autoPassCount: autoPass.length, setCount: sets.size,
+    optionCount, trickCount, autoPassCount: autoPass.length, setCount: sets.size,
     glCount: allPlays.filter(p => p.isGoalLine).length,
-    maxPass, maxRPO,
+    maxPass, maxRPO, maxOption,
     errors: [
-      total > 125                    && `Total plays: ${total}/125 max`,
-      passTotal < 40                 && `Pass plays: ${passTotal} — need 40 min`,
-      passTotal > maxPass            && `Pass plays: ${passTotal} — max is ${maxPass}`,
-      runPlays.length < 40           && `Run plays: ${runPlays.length} — need 40 min`,
-      rpoPlays.length > maxRPO       && `RPOs: ${rpoPlays.length} — max ${maxRPO}`,
-      autoPass.length > 25           && `Auto-motion pass: ${autoPass.length} — max 25`,
-      trickPlays.length > 10         && `Trick plays: ${trickPlays.length} — max 10`,
-      sets.size < 12                 && `Formation sets: ${sets.size} — need 12 min`,
+      total > 125                      && `Total plays: ${total}/125 max`,
+      passTotal < 40                   && `Pass plays: ${passTotal} — need 40 min`,
+      passTotal > maxPass              && `Pass plays: ${passTotal} — max is ${maxPass}`,
+      runPlays.length < 40             && `Run plays: ${runPlays.length} — need 40 min`,
+      rpoPlays.length > maxRPO         && `RPOs: ${rpoPlays.length} — max ${maxRPO}`,
+      optionPlays.length > maxOption   && `Option plays: ${optionPlays.length} — max ${maxOption}`,
+      autoPass.length > 25             && `Auto-motion pass: ${autoPass.length} — max 25`,
+      trickPlays.length > 10           && `Trick plays: ${trickPlays.length} — max 10`,
+      sets.size < 12                   && `Formation sets: ${sets.size} — need 12 min`,
     ].filter(Boolean),
     warnings: [
       passTotal === 0 && runPlays.length === 0 && 'Add plays to get started',
@@ -1102,6 +1107,12 @@ function renderValidation() {
       <div class="pbar"><div class="pbar-fill ${v.trickCount>10?'err':'ok'}" style="width:${pct(v.trickCount,10)}%"></div></div>
     </div>
     <div class="meter">
+      <div class="meter-val ${v.optionCount > v.maxOption ? 'err' : 'ok'}">${v.optionCount}</div>
+      <div class="meter-label">Option plays</div>
+      <div class="meter-limit">max ${v.maxOption}</div>
+      <div class="pbar"><div class="pbar-fill ${v.optionCount>v.maxOption?'err':'ok'}" style="width:${pct(v.optionCount,v.maxOption)}%"></div></div>
+    </div>
+    <div class="meter">
       <div class="meter-val ${v.setCount < 12 ? 'err' : 'ok'}">${v.setCount}</div>
       <div class="meter-label">Sets</div>
       <div class="meter-limit">min 12</div>
@@ -1128,6 +1139,7 @@ function renderValidation() {
     v.passTotal >= 40 && v.passTotal <= v.maxPass && { type:'ok', text:`Pass plays: ${v.passTotal} (40–${v.maxPass})` },
     v.runCount >= 40                              && { type:'ok', text:`Run plays: ${v.runCount} (40+ required)` },
     v.rpoCount <= v.maxRPO                        && { type:'ok', text:`RPOs: ${v.rpoCount}/${v.maxRPO} max` },
+    v.optionCount <= v.maxOption                  && { type:'ok', text:`Option plays: ${v.optionCount}/${v.maxOption} max` },
     v.trickCount <= 10                            && { type:'ok', text:`Trick plays: ${v.trickCount}/10 max` },
     v.setCount >= 12                              && { type:'ok', text:`Sets: ${v.setCount} (12+ required)` },
     v.autoPassCount <= 25                         && { type:'ok', text:`Auto-motion pass: ${v.autoPassCount}/25 max` },
@@ -1226,6 +1238,7 @@ async function submitPlaybook() {
     passCount: currentPB.plays.filter(p=>p.isPass&&!p.isRPO).length + currentPB.plays.filter(p=>p.isRPO).length,
     runCount: currentPB.plays.filter(p=>p.isRun).length,
     rpoCount: currentPB.plays.filter(p=>p.isRPO).length,
+    optionCount: currentPB.plays.filter(p=>p.isOption).length,
     trickCount: currentPB.plays.filter(p=>p.isTrick).length,
     setCount: new Set(currentPB.plays.map(p=>p.formation)).size,
   };
@@ -1302,7 +1315,7 @@ function renderLibrary() {
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:8px 0">
-        ${[['Pass',pb.passCount],['Run',pb.runCount],['RPO',pb.rpoCount],['Trick',pb.trickCount],['Sets',pb.setCount]].map(([l,n])=>`
+        ${[['Pass',pb.passCount],['Run',pb.runCount],['RPO',pb.rpoCount],['Option',pb.optionCount||0],['Trick',pb.trickCount],['Sets',pb.setCount]].map(([l,n])=>`
           <div style="text-align:center;background:var(--surface2);border-radius:var(--radius-sm);padding:5px">
             <div style="font-size:14px;font-weight:700">${n||0}</div>
             <div style="font-size:9px;color:var(--text2)">${l}</div>
