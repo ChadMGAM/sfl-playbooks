@@ -470,7 +470,43 @@
   </div>
 </div>
 
-<script>// ── State ──────────────────────────────────────────────────────────────────
+<script>// ── Security helpers ───────────────────────────────────────────────────────
+function esc(str) {
+  // Escape HTML to prevent XSS when inserting user content into innerHTML
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizeTeamName(name) {
+  // Strip any HTML tags, limit length, allow only safe characters
+  return name
+    .replace(/<[^>]*>/g, '')           // strip tags
+    .replace(/[<>"'`]/g, '')           // strip remaining dangerous chars
+    .trim()
+    .slice(0, 40);                     // max 40 chars
+}
+
+function validateStoragePayload(raw) {
+  // Basic shape check before trusting storage data
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(pb =>
+    pb && typeof pb === 'object' &&
+    typeof pb.teamName === 'string' &&
+    typeof pb.scheme === 'string' &&
+    Array.isArray(pb.plays)
+  ).map(pb => ({
+    ...pb,
+    teamName: sanitizeTeamName(pb.teamName),
+    saveName: 'SFL_' + sanitizeTeamName(pb.teamName).replace(/\s+/g,''),
+    plays: Array.isArray(pb.plays) ? pb.plays.slice(0, 200) : [],
+  }));
+}
+
+// ── State ──────────────────────────────────────────────────────────────────
 let DB = null;
 let currentStep = 1;
 let selectedConcepts = [];
@@ -486,13 +522,12 @@ const RPO_POWER_KEYS  = ['rpo-alert','rpo-split'];
 async function init() {
   try {
     const saved = await window.storage.get('sfl_playbooks_v3');
-    if (saved) playbooks = JSON.parse(saved.value);
+    if (saved) playbooks = validateStoragePayload(JSON.parse(saved.value));
   } catch(e) { playbooks = []; }
 
   try {
     const r = await fetch('./plays_merged.json');
     DB = await r.json();
-    console.log('DB loaded');
   } catch(e) {
     console.error('Could not load plays_merged.json', e);
     document.getElementById('page-builder').innerHTML = `
@@ -528,7 +563,11 @@ function goToStep(n) {
 
 // ── Step 1: Setup ──────────────────────────────────────────────────────────
 function onTeamNameInput() {
-  currentPB.teamName = document.getElementById('team-name-input').value.trim();
+  const raw = document.getElementById('team-name-input').value;
+  const clean = sanitizeTeamName(raw);
+  // Only rewrite the field if sanitization changed the value
+  if (clean !== raw) document.getElementById('team-name-input').value = clean;
+  currentPB.teamName = clean;
   checkSetupComplete();
 }
 
@@ -1186,14 +1225,14 @@ function renderPBPanel() {
     return `
     <div class="formation-group">
       <div class="formation-label" style="${isGL?'color:var(--text3);font-style:italic':''}">
-        ${f.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())} (${plays.length})${isGL?' — goal line':''}
+        ${esc(f.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()))} (${plays.length})${isGL?' — goal line':''}
       </div>
       ${plays.map(p => {
         const rmAttrs = [
           `data-key="${p.key}"`,
           `data-formation="${p.formation}"`,
           `data-slug="${p.slug}"`,
-          `data-name="${(p.name||'').replace(/"/g,'&quot;')}"`,
+          `data-name="${esc(p.name||'')}"`,
           `data-isrun="${p.isRun}"`,
           `data-runconcept="${p.runConcept||''}"`,
           `data-ispass="${p.isPass}"`,
@@ -1201,13 +1240,13 @@ function renderPBPanel() {
           `data-istrick="${p.isTrick}"`,
           `data-isauto="${p.isAutoMotion}"`,
           `data-isgl="${p.isGoalLine||false}"`,
-          `data-url="${(p.url||'').replace(/"/g,'&quot;')}"`,
+          `data-url="${esc(p.url||'')}"`,
         ].join(' ');
         return `
         <div class="pb-play">
           <div class="pb-play-name">
-            ${p.name}
-            ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener" title="View play art on cfb.fan" style="color:var(--text3);font-size:12px;margin-left:4px;text-decoration:none" onmouseover="this.style.color='var(--navy)'" onmouseout="this.style.color='var(--text3)'">&#128065;</a>` : ''}
+            ${esc(p.name)}
+            ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" title="View play art on cfb.fan" style="color:var(--text3);font-size:12px;margin-left:4px;text-decoration:none" onmouseover="this.style.color='var(--navy)'" onmouseout="this.style.color='var(--text3)'">&#128065;</a>` : ''}
           </div>
           <div class="pb-play-right">
             ${p.isRPO ? '<span class="badge badge-rpo">RPO</span>' : ''}
@@ -1253,7 +1292,10 @@ async function submitPlaybook() {
 
   try {
     await window.storage.set('sfl_playbooks_v3', JSON.stringify(playbooks));
-  } catch(e) {}
+  } catch(e) {
+    alert('⚠️ Playbook saved locally but could not sync to the league library. Try submitting again.');
+    return;
+  }
 
   clearDraft();
   alert(`✅ Playbook submitted!\nSave name: ${pb.saveName}\n\nView it in the Library tab.`);
@@ -1291,18 +1333,19 @@ function renderLibrary() {
     const v = validate(pb);
     const isValid = v.errors.length === 0;
     const conceptBadges = (pb.concepts||[]).map(c =>
-      `<span class="badge badge-${c.toLowerCase()}">${c}</span>`).join('');
+      `<span class="badge badge-${esc(c.toLowerCase())}">${esc(c)}</span>`).join('');
     const fCounts = {};
     (pb.plays||[]).forEach(p => { fCounts[p.formation] = (fCounts[p.formation]||0)+1; });
-    const topForms = Object.entries(fCounts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([f,n])=>`${f.replace(/-/g,' ')} (${n})`).join(' · ');
+    const topForms = Object.entries(fCounts).sort((a,b)=>b[1]-a[1]).slice(0,3)
+      .map(([f,n])=>`${esc(f.replace(/-/g,' '))} (${n})`).join(' · ');
 
     return `<div class="lib-card">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
         <div>
-          <div class="lib-card-name">${pb.saveName}</div>
-          <div class="lib-card-meta">${pb.teamName} · Submitted ${pb.submitted||'—'}</div>
+          <div class="lib-card-name">${esc(pb.saveName)}</div>
+          <div class="lib-card-meta">${esc(pb.teamName)} · Submitted ${esc(pb.submitted||'—')}</div>
           <div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">
-            <span class="badge badge-scheme ${schemeCls(pb.scheme)}">${pb.scheme}</span>
+            <span class="badge badge-scheme ${schemeCls(pb.scheme)}">${esc(pb.scheme)}</span>
             ${conceptBadges}
             ${isValid
               ? '<span style="font-size:10px;color:var(--green-text);font-weight:600">&#10003; Valid</span>'
@@ -1318,13 +1361,13 @@ function renderLibrary() {
         ${[['Pass',pb.passCount],['Run',pb.runCount],['RPO',pb.rpoCount],['Option',pb.optionCount||0],['Trick',pb.trickCount],['Sets',pb.setCount]].map(([l,n])=>`
           <div style="text-align:center;background:var(--surface2);border-radius:var(--radius-sm);padding:5px">
             <div style="font-size:14px;font-weight:700">${n||0}</div>
-            <div style="font-size:9px;color:var(--text2)">${l}</div>
+            <div style="font-size:9px;color:var(--text2)">${esc(l)}</div>
           </div>`).join('')}
       </div>
-      ${v.errors.length ? `<div class="alert alert-err" style="margin:6px 0 0;font-size:10px">${v.errors[0]}</div>` : ''}
+      ${v.errors.length ? `<div class="alert alert-err" style="margin:6px 0 0;font-size:10px">${esc(v.errors[0])}</div>` : ''}
       <div style="font-size:10px;color:var(--text3);margin-top:6px">${topForms}</div>
       <div class="lib-card-chips">
-        ${(pb.plays||[]).slice(0,15).map(p=>`<span class="lib-chip">${p.name}</span>`).join('')}
+        ${(pb.plays||[]).slice(0,15).map(p=>`<span class="lib-chip">${esc(p.name)}</span>`).join('')}
         ${(pb.plays||[]).length > 15 ? `<span class="lib-chip">+${pb.plays.length-15} more</span>` : ''}
       </div>
     </div>`;
