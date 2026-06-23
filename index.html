@@ -733,6 +733,48 @@ function renderPlayBrowser() {
   }).join('');
 }
 
+// ── Search card helpers ─────────────────────────────────────────────────────
+function updateSearchCardBtn(cardId, slug, name, isRun, runConcept, isPass, isRPO, isTrick, isAutoMotion, isGoalLine, url) {
+  const sel = document.getElementById('fsel-' + cardId);
+  const btn = document.getElementById('btn-' + cardId);
+  if (!sel || !btn) return;
+  const fslug = sel.value;
+  const key = `${fslug}||${slug}`;
+  const inPB = currentPB.plays.some(p => p.key === key);
+  const overLimit = !inPB && currentPB.plays.length >= 125;
+  const trickFull = !inPB && isTrick === 'true' && validate(currentPB).trickCount >= 10;
+  btn.textContent = inPB ? 'Remove' : 'Add';
+  btn.className = `btn btn-sm ${inPB ? 'btn-danger' : ''}`;
+  btn.style.flex = '1';
+  btn.disabled = !inPB && (overLimit || trickFull || isGoalLine === false && String(isRun) === 'true' && !selectedConcepts.includes(runConcept) && runConcept !== 'Any' && runConcept !== '');
+}
+
+function addFromSearch(cardId, slug, name, isRun, runConcept, isPass, isRPO, isTrick, isAutoMotion, isGoalLine, url) {
+  const sel = document.getElementById('fsel-' + cardId);
+  if (!sel) return;
+  const fslug = sel.value;
+  const key = `${fslug}||${slug}`;
+  const idx = currentPB.plays.findIndex(p => p.key === key);
+  if (idx >= 0) {
+    currentPB.plays.splice(idx, 1);
+  } else {
+    currentPB.plays.push({
+      key, formation: fslug, slug, name, url: url || '',
+      isRun: isRun === 'true' || isRun === true,
+      runConcept: runConcept || '',
+      isPass: isPass === 'true' || isPass === true,
+      isRPO: isRPO === 'true' || isRPO === true,
+      isTrick: isTrick === 'true' || isTrick === true,
+      isAutoMotion: isAutoMotion === 'true' || isAutoMotion === true,
+      isGoalLine: isGoalLine === 'true' || isGoalLine === true,
+    });
+  }
+  saveDraft();
+  renderGlobalSearch();
+  renderValidation();
+  renderPBPanel();
+}
+
 // ── Play tab switching ─────────────────────────────────────────────────────
 let playTab = 'browse';
 function setPlayTab(tab) {
@@ -744,12 +786,23 @@ function setPlayTab(tab) {
   if (tab === 'browse') {
     browsBtn.style.background = 'var(--surface)'; browsBtn.style.borderColor = 'var(--border2)';
     srchBtn.style.background  = 'transparent';    srchBtn.style.borderColor  = 'transparent';
-    renderPlayBrowser();
+    // Reset the grid to show the currently selected formation, not leftover search results
+    const formation = document.getElementById('formation-select')?.value;
+    if (formation) {
+      renderPlayBrowser();
+    } else {
+      document.getElementById('play-browser-grid').innerHTML =
+        '<div class="empty-state">Select a formation above to browse plays</div>';
+    }
   } else {
     srchBtn.style.background  = 'var(--surface)'; srchBtn.style.borderColor  = 'var(--border2)';
     browsBtn.style.background = 'transparent';    browsBtn.style.borderColor = 'transparent';
+    // Clear previous search results when switching to search tab
+    document.getElementById('global-search').value = '';
+    document.getElementById('search-result-count').textContent = '';
+    document.getElementById('play-browser-grid').innerHTML =
+      '<div class="empty-state">Type a play name to search all formations</div>';
     setTimeout(() => document.getElementById('global-search')?.focus(), 50);
-    renderGlobalSearch();
   }
 }
 
@@ -804,22 +857,27 @@ function renderGlobalSearch() {
   }
 
   grid.innerHTML = unique.map(({ p, formations, isGoalLine }) => {
-    const { fslug } = formations[0];
-    const key = `${fslug}||${p.slug}`;
-    const already = inPB.has(key);
+    // Build a unique card id so the formation select can talk to the add button
+    const cardId = 'sc-' + p.slug.replace(/[^a-z0-9]/g,'-');
+    // Check which formations already have this play in the PB
+    const addedFormations = new Set(
+      currentPB.plays.filter(pb => pb.slug === p.slug).map(pb => pb.formation)
+    );
     const runOk = isGoalLine || isRunAllowed(p);
     const rpoOk = isGoalLine || isRPOAllowed(p);
     const allowed = runOk && rpoOk;
-    const canAdd = !already && allowed && currentPB.plays.length < 125 && !(p.isTrick && v.trickCount >= 10);
-    const formList = formations.slice(0,3).map(f=>f.fname).join(', ') + (formations.length>3?` +${formations.length-3} more`:'');
-    const dataAttrs = [
-      `data-key="${key}"`, `data-formation="${fslug}"`, `data-slug="${p.slug}"`,
-      `data-name="${p.name.replace(/"/g,'&quot;')}"`, `data-isrun="${p.isRun}"`,
-      `data-runconcept="${p.runConcept||''}"`, `data-ispass="${p.isPass}"`,
-      `data-isrpo="${p.isRPO}"`, `data-istrick="${p.isTrick}"`, `data-isauto="${p.isAutoMotion}"`,
-      `data-isgl="${isGoalLine}"`, `data-url="${(p.url||'').replace(/"/g,'&quot;')}"`,
-    ].join(' ');
-    return `<div class="play-card ${already?'in-pb':''} ${!allowed?'blocked':''}">
+
+    // Formation select options
+    const formOptions = formations.map(({fslug, fname}) => {
+      const key = `${fslug}||${p.slug}`;
+      const inPbAlready = inPB.has(key);
+      return `<option value="${fslug}" ${inPbAlready?'data-added="true"':''}>${fname}${inPbAlready?' ✓':''}</option>`;
+    }).join('');
+
+    const overLimit = currentPB.plays.length >= 125;
+    const trickFull = p.isTrick && v.trickCount >= 10;
+
+    return `<div class="play-card ${!allowed?'blocked':''}" id="${cardId}">
       <div class="play-name">${p.name}</div>
       <div class="play-type">
         ${p.isRPO?'<span class="badge badge-rpo">RPO</span>':''}
@@ -828,17 +886,25 @@ function renderGlobalSearch() {
         ${p.isPass&&!p.isRPO&&!p.isTrick?'<span class="badge badge-pass">Pass</span>':''}
         ${p.isAutoMotion?'<span class="badge badge-auto">Motion</span>':''}
       </div>
-      <div style="font-size:10px;color:var(--text3);margin-top:4px" title="${formations.map(f=>f.fname).join(', ')}">${formList}</div>
       ${!allowed?`<div style="font-size:10px;color:var(--red);margin-top:4px">${!runOk?'Wrong run concept':''} ${!rpoOk?'RPO mismatch':''}</div>`:''}
-      <div style="display:flex;gap:5px;margin-top:7px">
-        <button class="btn btn-sm ${already?'btn-danger':''}" style="flex:1"
-          ${dataAttrs} onclick="handlePlayToggle(this)" ${!canAdd&&!already?'disabled':''}>
-          ${already?'Remove':'Add'}
+      <select id="fsel-${cardId}" style="width:100%;margin-top:7px;font-size:11px" onchange="updateSearchCardBtn('${cardId}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept||''}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}','${isGoalLine}','${(p.url||'').replace(/'/g,"\\'")}')">
+        ${formOptions}
+      </select>
+      <div style="display:flex;gap:5px;margin-top:6px">
+        <button class="btn btn-sm" style="flex:1" id="btn-${cardId}"
+          onclick="addFromSearch('${cardId}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept||''}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}','${isGoalLine}','${(p.url||'').replace(/'/g,"\\'")}')">
+          Add
         </button>
         ${p.url?`<a href="${p.url}" target="_blank" rel="noopener" class="btn btn-sm" style="padding:4px 8px;text-decoration:none" title="View on cfb.fan">&#128065;</a>`:''}
       </div>
     </div>`;
   }).join('');
+
+  // Initialize button states after render
+  unique.forEach(({ p }) => {
+    const cardId = 'sc-' + p.slug.replace(/[^a-z0-9]/g,'-');
+    updateSearchCardBtn(cardId, p.slug, p.name, p.isRun, p.runConcept||'', p.isPass, p.isRPO, p.isTrick, p.isAutoMotion, false, p.url||'');
+  });
 }
 
 // ── Concept balance chart ──────────────────────────────────────────────────
