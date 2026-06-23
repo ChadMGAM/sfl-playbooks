@@ -300,20 +300,49 @@
       <div>
         <div class="card">
           <div class="card-title">&#128218; Browse plays</div>
-          <div class="browser-controls">
-            <select id="formation-select" onchange="onFormationChange()" style="flex:2">
-              <option value="">— Select formation —</option>
-            </select>
-            <select id="type-filter" onchange="renderPlayBrowser()">
-              <option value="">All types</option>
-              <option value="pass">Pass</option>
-              <option value="run">Run</option>
-              <option value="rpo">RPO</option>
-              <option value="trick">Trick</option>
-            </select>
-            <input type="text" id="play-search" placeholder="Search plays…" oninput="renderPlayBrowser()">
+
+          <!-- Mode tabs -->
+          <div style="display:flex;gap:3px;background:var(--bg);border-radius:var(--radius-sm);padding:3px;margin-bottom:10px">
+            <button id="tab-browse" class="btn" style="flex:1;justify-content:center;font-size:12px;background:var(--surface);border-color:var(--border2)" onclick="setPlayTab('browse')">&#127937; By formation</button>
+            <button id="tab-search" class="btn" style="flex:1;justify-content:center;font-size:12px" onclick="setPlayTab('search')">&#128269; Search all plays</button>
           </div>
-          <div id="play-browser-grid" class="plays-grid">
+
+          <!-- Browse mode -->
+          <div id="browse-mode">
+            <div class="browser-controls">
+              <select id="formation-select" onchange="onFormationChange()" style="flex:2">
+                <option value="">— Select formation —</option>
+              </select>
+              <select id="type-filter" onchange="renderPlayBrowser()">
+                <option value="">All types</option>
+                <option value="pass">Pass</option>
+                <option value="run">Run</option>
+                <option value="rpo">RPO</option>
+                <option value="trick">Trick</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Search mode -->
+          <div id="search-mode" style="display:none">
+            <div class="browser-controls">
+              <input type="text" id="global-search" placeholder="Search play name across all formations…" oninput="renderGlobalSearch()" style="flex:1">
+              <select id="search-type-filter" onchange="renderGlobalSearch()">
+                <option value="">All types</option>
+                <option value="pass">Pass</option>
+                <option value="run">Run</option>
+                <option value="rpo">RPO</option>
+                <option value="trick">Trick</option>
+                <option value="Zone">Zone</option>
+                <option value="Power">Power</option>
+                <option value="Counter">Counter</option>
+                <option value="Trap">Trap</option>
+              </select>
+            </div>
+            <div style="font-size:11px;color:var(--text2);margin-top:6px;margin-bottom:2px" id="search-result-count"></div>
+          </div>
+
+          <div id="play-browser-grid" class="plays-grid" style="margin-top:8px">
             <div class="empty-state">Select a formation above to browse plays</div>
           </div>
         </div>
@@ -328,12 +357,19 @@
           </div>
           <div class="meters" id="meters"></div>
           <div class="val-list" id="val-list"></div>
+
+          <!-- Concept balance chart -->
+          <div id="concept-chart" style="display:none;margin-top:12px">
+            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:7px;text-transform:uppercase;letter-spacing:.3px">Play mix</div>
+            <div id="chart-bars"></div>
+          </div>
+
           <hr class="divider">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <div style="flex:1">
               <div style="font-size:11px;color:var(--text2)">Saving as: <strong id="pb-save-name" style="color:var(--text)">—</strong></div>
             </div>
-            <button class="btn" onclick="goToStep(1)" style="font-size:11px">&#8592; Start over</button>
+            <button class="btn" onclick="clearDraft();goToStep(1)" style="font-size:11px">&#8592; Start over</button>
             <button class="btn btn-gold" id="submit-btn" onclick="submitPlaybook()" disabled>Submit playbook</button>
           </div>
         </div>
@@ -462,7 +498,10 @@ async function init() {
       <div class="card"><div class="alert alert-err">
         &#9888; Could not load play database. Make sure plays_merged.json is in the same folder as index.html.
       </div></div>`;
+    return;
   }
+  // Offer to resume draft after DB loads
+  loadDraft();
 }
 
 // ── Navigation ─────────────────────────────────────────────────────────────
@@ -694,6 +733,198 @@ function renderPlayBrowser() {
   }).join('');
 }
 
+// ── Play tab switching ─────────────────────────────────────────────────────
+let playTab = 'browse';
+function setPlayTab(tab) {
+  playTab = tab;
+  document.getElementById('browse-mode').style.display = tab === 'browse' ? '' : 'none';
+  document.getElementById('search-mode').style.display  = tab === 'search' ? '' : 'none';
+  const browsBtn = document.getElementById('tab-browse');
+  const srchBtn  = document.getElementById('tab-search');
+  if (tab === 'browse') {
+    browsBtn.style.background = 'var(--surface)'; browsBtn.style.borderColor = 'var(--border2)';
+    srchBtn.style.background  = 'transparent';    srchBtn.style.borderColor  = 'transparent';
+    renderPlayBrowser();
+  } else {
+    srchBtn.style.background  = 'var(--surface)'; srchBtn.style.borderColor  = 'var(--border2)';
+    browsBtn.style.background = 'transparent';    browsBtn.style.borderColor = 'transparent';
+    setTimeout(() => document.getElementById('global-search')?.focus(), 50);
+    renderGlobalSearch();
+  }
+}
+
+// ── Global search across all formations ───────────────────────────────────
+function renderGlobalSearch() {
+  const query = (document.getElementById('global-search')?.value || '').toLowerCase().trim();
+  const typeFilter = document.getElementById('search-type-filter')?.value || '';
+  const grid = document.getElementById('play-browser-grid');
+
+  if (!query && !typeFilter) {
+    grid.innerHTML = '<div class="empty-state">Type a play name to search all formations</div>';
+    document.getElementById('search-result-count').textContent = '';
+    return;
+  }
+  if (!DB || !currentPB.scheme) return;
+
+  const formations = DB[currentPB.scheme]?.formations || {};
+  const inPB = new Set(currentPB.plays.map(p => p.key));
+  const v = validate(currentPB);
+
+  // Collect all matching plays with which formations they appear in
+  const bySlug = {};
+  Object.entries(formations).forEach(([fslug, fdata]) => {
+    if (BANNED.some(b => fslug.includes(b))) return;
+    fdata.plays.forEach(p => {
+      if (query && !p.name.toLowerCase().includes(query) && !p.slug.includes(query)) return;
+      if (typeFilter === 'pass'    && !(p.isPass && !p.isRPO)) return;
+      if (typeFilter === 'run'     && !p.isRun) return;
+      if (typeFilter === 'rpo'     && !p.isRPO) return;
+      if (typeFilter === 'trick'   && !p.isTrick) return;
+      if (['Zone','Power','Counter','Trap'].includes(typeFilter) && p.runConcept !== typeFilter) return;
+      if (!bySlug[p.slug]) bySlug[p.slug] = { p, formations: [], isGoalLine: fdata.isGoalLine };
+      bySlug[p.slug].formations.push({ fslug, fname: fdata.name });
+    });
+  });
+
+  const unique = Object.values(bySlug);
+  const totalFormations = unique.reduce((s,u) => s + u.formations.length, 0);
+  document.getElementById('search-result-count').textContent = unique.length
+    ? `${unique.length} unique play${unique.length>1?'s':''} across ${totalFormations} formation${totalFormations>1?'s':''}`
+    : 'No plays found';
+
+  if (!unique.length) { grid.innerHTML = '<div class="empty-state">No plays match</div>'; return; }
+
+  function isRunAllowed(p) { return !p.isRun || p.runConcept === 'Any' || selectedConcepts.includes(p.runConcept); }
+  function isRPOAllowed(p) {
+    if (!p.isRPO) return true;
+    const s = p.slug;
+    if (RPO_ZONE_KEYS.some(k=>s.includes(k)))  return selectedConcepts.some(c=>c==='Zone'||c==='Counter');
+    if (RPO_POWER_KEYS.some(k=>s.includes(k))) return selectedConcepts.some(c=>c==='Power'||c==='Trap');
+    return true;
+  }
+
+  grid.innerHTML = unique.map(({ p, formations, isGoalLine }) => {
+    const { fslug } = formations[0];
+    const key = `${fslug}||${p.slug}`;
+    const already = inPB.has(key);
+    const runOk = isGoalLine || isRunAllowed(p);
+    const rpoOk = isGoalLine || isRPOAllowed(p);
+    const allowed = runOk && rpoOk;
+    const canAdd = !already && allowed && currentPB.plays.length < 125 && !(p.isTrick && v.trickCount >= 10);
+    const formList = formations.slice(0,3).map(f=>f.fname).join(', ') + (formations.length>3?` +${formations.length-3} more`:'');
+    const dataAttrs = [
+      `data-key="${key}"`, `data-formation="${fslug}"`, `data-slug="${p.slug}"`,
+      `data-name="${p.name.replace(/"/g,'&quot;')}"`, `data-isrun="${p.isRun}"`,
+      `data-runconcept="${p.runConcept||''}"`, `data-ispass="${p.isPass}"`,
+      `data-isrpo="${p.isRPO}"`, `data-istrick="${p.isTrick}"`, `data-isauto="${p.isAutoMotion}"`,
+      `data-isgl="${isGoalLine}"`, `data-url="${(p.url||'').replace(/"/g,'&quot;')}"`,
+    ].join(' ');
+    return `<div class="play-card ${already?'in-pb':''} ${!allowed?'blocked':''}">
+      <div class="play-name">${p.name}</div>
+      <div class="play-type">
+        ${p.isRPO?'<span class="badge badge-rpo">RPO</span>':''}
+        ${p.isTrick?'<span class="badge badge-trick">Trick</span>':''}
+        ${p.isRun&&!p.isRPO?`<span class="badge badge-${(p.runConcept||'any').toLowerCase()}">${p.runConcept||'Run'}</span>`:''}
+        ${p.isPass&&!p.isRPO&&!p.isTrick?'<span class="badge badge-pass">Pass</span>':''}
+        ${p.isAutoMotion?'<span class="badge badge-auto">Motion</span>':''}
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px" title="${formations.map(f=>f.fname).join(', ')}">${formList}</div>
+      ${!allowed?`<div style="font-size:10px;color:var(--red);margin-top:4px">${!runOk?'Wrong run concept':''} ${!rpoOk?'RPO mismatch':''}</div>`:''}
+      <div style="display:flex;gap:5px;margin-top:7px">
+        <button class="btn btn-sm ${already?'btn-danger':''}" style="flex:1"
+          ${dataAttrs} onclick="handlePlayToggle(this)" ${!canAdd&&!already?'disabled':''}>
+          ${already?'Remove':'Add'}
+        </button>
+        ${p.url?`<a href="${p.url}" target="_blank" rel="noopener" class="btn btn-sm" style="padding:4px 8px;text-decoration:none" title="View on cfb.fan">&#128065;</a>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Concept balance chart ──────────────────────────────────────────────────
+function renderConceptChart(pb) {
+  const chart = document.getElementById('concept-chart');
+  const bars  = document.getElementById('chart-bars');
+  const plays = (pb.plays || []).filter(p => !p.isGoalLine);
+  if (!plays.length) { chart.style.display = 'none'; return; }
+  chart.style.display = '';
+  const total   = plays.length;
+  const pass    = plays.filter(p => p.isPass && !p.isRPO).length;
+  const rpo     = plays.filter(p => p.isRPO).length;
+  const zone    = plays.filter(p => p.runConcept === 'Zone').length;
+  const power   = plays.filter(p => p.runConcept === 'Power').length;
+  const counter = plays.filter(p => p.runConcept === 'Counter').length;
+  const trap    = plays.filter(p => p.runConcept === 'Trap').length;
+  const draw    = plays.filter(p => p.runConcept === 'Any').length;
+  function bar(label, count, color) {
+    if (!count) return '';
+    const pct = Math.round(count / total * 100);
+    return `<div style="margin-bottom:5px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px">
+        <span style="color:var(--text2)">${label}</span>
+        <span style="color:var(--text3)">${count} · ${pct}%</span>
+      </div>
+      <div style="height:5px;background:var(--bg);border-radius:3px;overflow:hidden">
+        <div style="height:5px;width:${pct}%;background:${color};border-radius:3px;transition:width .3s"></div>
+      </div>
+    </div>`;
+  }
+  bars.innerHTML =
+    bar('Pass',     pass,    '#185fa5') +
+    bar('RPO',      rpo,     '#993556') +
+    bar('Zone',     zone,    '#1D9E75') +
+    bar('Power',    power,   '#993C1D') +
+    bar('Counter',  counter, '#854F0B') +
+    bar('Trap',     trap,    '#534AB7') +
+    bar('Draw/Any', draw,    '#888780');
+}
+
+// ── Draft auto-save ────────────────────────────────────────────────────────
+function saveDraft() {
+  if (!currentPB?.teamName) return;
+  try {
+    localStorage.setItem('sfl_draft', JSON.stringify({
+      currentPB, selectedConcepts, sourceTeam,
+      savedAt: new Date().toISOString(),
+    }));
+  } catch(e) {}
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem('sfl_draft');
+    if (!raw) return false;
+    const draft = JSON.parse(raw);
+    if (!draft.currentPB?.teamName) return false;
+    const age = Math.round((Date.now() - new Date(draft.savedAt)) / 60000);
+    if (!confirm(`Resume draft for "${draft.currentPB.teamName}"?\n${draft.currentPB.plays.length} plays — saved ${age} min ago`)) return false;
+    currentPB = draft.currentPB;
+    selectedConcepts = draft.selectedConcepts || [];
+    sourceTeam = draft.sourceTeam || '';
+    document.getElementById('team-name-input').value = currentPB.teamName;
+    document.getElementById('scheme-select').value = currentPB.scheme;
+    onSchemeChange();
+    ['Zone','Power','Counter','Trap'].forEach(c => {
+      const el = document.getElementById('concept-' + c);
+      if (!el) return;
+      el.classList.toggle('selected', selectedConcepts.includes(c));
+      el.classList.toggle('disabled', !selectedConcepts.includes(c) && selectedConcepts.length >= 3);
+    });
+    document.getElementById('concept-warning').classList.toggle('show', selectedConcepts.length === 3);
+    const n = selectedConcepts.length;
+    document.getElementById('concepts-count').textContent = n === 0 ? 'Select your team name, scheme, and at least 1 run concept' :
+      n === 1 ? '1 concept selected — you can add 1–2 more' :
+      n === 2 ? '2 concepts selected ✓ — optionally add a 3rd' :
+                '3 concepts selected — max pass plays: 55, RPO limit: 20';
+    document.getElementById('setup-next-btn').disabled = false;
+    return true;
+  } catch(e) { return false; }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem('sfl_draft'); } catch(e) {}
+}
+
 function handlePlayToggle(btn) {
   const d = btn.dataset;
   togglePlay(
@@ -717,10 +948,12 @@ function togglePlay(key, formation, slug, name, isRun, runConcept, isPass, isRPO
       isGoalLine: isGoalLine === 'true',
     });
   }
-  renderPlayBrowser();
+  saveDraft();
+  if (playTab === 'search') renderGlobalSearch(); else renderPlayBrowser();
   renderValidation();
   renderPBPanel();
 }
+
 
 // ── Validation ─────────────────────────────────────────────────────────────
 function validate(pb) {
@@ -851,6 +1084,7 @@ function renderValidation() {
 
   document.getElementById('submit-btn').disabled = !isValid || v.total === 0;
   document.getElementById('pb-play-count').textContent = `${v.total} / 125 plays`;
+  renderConceptChart(currentPB);
 }
 
 function renderPBPanel() {
@@ -944,6 +1178,7 @@ async function submitPlaybook() {
     await window.storage.set('sfl_playbooks_v3', JSON.stringify(playbooks));
   } catch(e) {}
 
+  clearDraft();
   alert(`✅ Playbook submitted!\nSave name: ${pb.saveName}\n\nView it in the Library tab.`);
   showPage('library');
 }
