@@ -627,7 +627,6 @@ function renderPlayBrowser() {
   if (!DB || !currentPB.scheme) return;
   const formation = document.getElementById('formation-select').value;
   const typeFilter = document.getElementById('type-filter').value;
-  const search = document.getElementById('play-search').value.toLowerCase();
   const grid = document.getElementById('play-browser-grid');
 
   if (!formation) {
@@ -663,7 +662,6 @@ function renderPlayBrowser() {
   }
 
   let plays = fdata.plays.filter(p => {
-    if (search && !p.name.toLowerCase().includes(search) && !p.slug.includes(search)) return false;
     if (typeFilter === 'pass'  && !(p.isPass && !p.isRPO)) return false;
     if (typeFilter === 'run'   && !p.isRun) return false;
     if (typeFilter === 'rpo'   && !p.isRPO) return false;
