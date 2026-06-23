@@ -2,10 +2,12 @@
   "version": 2,
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
-    { "src": "plays_merged.json", "use": "@vercel/static" }
+    { "src": "plays_merged.json", "use": "@vercel/static" },
+    { "src": "SFL_Logo_2.png", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/plays_merged.json", "dest": "/plays_merged.json" },
+    { "src": "/SFL_Logo_2.png", "dest": "/SFL_Logo_2.png" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "headers": [
@@ -14,31 +16,17 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.vercel-storage.com; img-src 'self' data:; frame-src 'none'; object-src 'none'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.vercel-storage.com; img-src 'self' data: blob:; frame-src 'none'; object-src 'none'"
         },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "camera=(), microphone=(), geolocation=()"
-        }
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
       ]
     },
     {
       "source": "/plays_merged.json",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=86400" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
     }
   ]
 }
