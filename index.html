@@ -257,6 +257,35 @@
           </select>
         </div>
       </div>
+      <!-- Scheme stats — shown after selection -->
+      <div id="scheme-stats" style="display:none;margin-top:4px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-bottom:10px">
+          <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px;text-align:center">
+            <div id="stat-formations" style="font-size:20px;font-weight:700;color:var(--text)">—</div>
+            <div style="font-size:10px;color:var(--text2);margin-top:2px">Formations</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px;text-align:center">
+            <div id="stat-plays" style="font-size:20px;font-weight:700;color:var(--text)">—</div>
+            <div style="font-size:10px;color:var(--text2);margin-top:2px">Total Plays</div>
+          </div>
+          <div style="background:var(--green-bg);border-radius:var(--radius-sm);padding:10px;text-align:center">
+            <div id="stat-zone" style="font-size:20px;font-weight:700;color:var(--green-text)">—</div>
+            <div style="font-size:10px;color:var(--green-text);margin-top:2px">Zone Runs</div>
+          </div>
+          <div style="background:#faece7;border-radius:var(--radius-sm);padding:10px;text-align:center">
+            <div id="stat-power" style="font-size:20px;font-weight:700;color:#712b13">—</div>
+            <div style="font-size:10px;color:#712b13;margin-top:2px">Power Runs</div>
+          </div>
+          <div style="background:var(--amber-bg);border-radius:var(--radius-sm);padding:10px;text-align:center">
+            <div id="stat-counter" style="font-size:20px;font-weight:700;color:var(--amber-text)">—</div>
+            <div style="font-size:10px;color:var(--amber-text);margin-top:2px">Counter Runs</div>
+          </div>
+          <div style="background:var(--purple-bg);border-radius:var(--radius-sm);padding:10px;text-align:center">
+            <div id="stat-trap" style="font-size:20px;font-weight:700;color:var(--purple-text)">—</div>
+            <div style="font-size:10px;color:var(--purple-text);margin-top:2px">Trap Runs</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="card">
@@ -266,18 +295,22 @@
         <div class="concept-card zone" id="concept-Zone" onclick="toggleConcept('Zone')">
           <div class="concept-name" style="color:var(--green-text)">Zone</div>
           <div class="concept-desc">Inside/Outside Zone, Sweep, Stretch, Read Option, Speed Option</div>
+          <div id="concept-count-Zone" style="font-size:11px;font-weight:600;color:var(--green-text);margin-top:5px;opacity:0.8"></div>
         </div>
         <div class="concept-card power" id="concept-Power" onclick="toggleConcept('Power')">
           <div class="concept-name" style="color:#712b13">Power</div>
           <div class="concept-desc">Dive, Power O, Lead, Blast, Buck, Smash, Iso</div>
+          <div id="concept-count-Power" style="font-size:11px;font-weight:600;color:#712b13;margin-top:5px;opacity:0.8"></div>
         </div>
         <div class="concept-card counter" id="concept-Counter" onclick="toggleConcept('Counter')">
           <div class="concept-name" style="color:var(--amber-text)">Counter</div>
           <div class="concept-desc">Counter, GT Counter, QB Wrap, Veer, Triple Option</div>
+          <div id="concept-count-Counter" style="font-size:11px;font-weight:600;color:var(--amber-text);margin-top:5px;opacity:0.8"></div>
         </div>
         <div class="concept-card trap" id="concept-Trap" onclick="toggleConcept('Trap')">
           <div class="concept-name" style="color:var(--purple-text)">Trap</div>
           <div class="concept-desc">Trap, Toss, Wham, Pin &amp; Pull Toss, Crack Toss</div>
+          <div id="concept-count-Trap" style="font-size:11px;font-weight:600;color:var(--purple-text);margin-top:5px;opacity:0.8"></div>
         </div>
       </div>
       <div class="concept-warning" id="concept-warning">
@@ -575,6 +608,40 @@ function onSchemeChange() {
   const scheme = document.getElementById('scheme-select').value;
   currentPB.scheme = scheme;
   checkSetupComplete();
+
+  const statsEl = document.getElementById('scheme-stats');
+  if (!scheme || !DB || !DB[scheme]) {
+    statsEl.style.display = 'none';
+    ['Zone','Power','Counter','Trap'].forEach(c => {
+      const el = document.getElementById('concept-count-' + c);
+      if (el) el.textContent = '';
+    });
+    return;
+  }
+
+  // Compute stats from the merged DB
+  const formations = DB[scheme].formations || {};
+  const regular = Object.values(formations).filter(f => !f.isGoalLine);
+  const allPlays = regular.flatMap(f => f.plays);
+  const runPlays = allPlays.filter(p => p.isRun && !p.isRPO);
+
+  const counts = { Zone: 0, Power: 0, Counter: 0, Trap: 0, Any: 0 };
+  runPlays.forEach(p => { if (counts[p.runConcept] !== undefined) counts[p.runConcept]++; });
+
+  // Update scheme stats bar
+  document.getElementById('stat-formations').textContent = regular.length.toLocaleString();
+  document.getElementById('stat-plays').textContent = allPlays.length.toLocaleString();
+  document.getElementById('stat-zone').textContent = counts.Zone.toLocaleString();
+  document.getElementById('stat-power').textContent = counts.Power.toLocaleString();
+  document.getElementById('stat-counter').textContent = counts.Counter.toLocaleString();
+  document.getElementById('stat-trap').textContent = counts.Trap.toLocaleString();
+  statsEl.style.display = '';
+
+  // Update concept card sub-labels
+  ['Zone','Power','Counter','Trap'].forEach(c => {
+    const el = document.getElementById('concept-count-' + c);
+    if (el) el.textContent = counts[c] ? `${counts[c].toLocaleString()} plays available` : 'No plays in this scheme';
+  });
 }
 
 function onSourceTeamChange() {
@@ -766,7 +833,7 @@ function renderPlayBrowser() {
           ${!canAdd&&!already?'disabled':''}>
           ${already ? 'Remove' : 'Add'}
         </button>
-        ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener" class="btn btn-sm" title="View play art on cfb.fan" style="padding:4px 8px;text-decoration:none"></a>` : ''}
+        ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener" class="btn btn-sm" title="View play art on cfb.fan" style="padding:4px 8px;text-decoration:none">&#128065;</a>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -934,7 +1001,7 @@ function renderGlobalSearch() {
           onclick="addFromSearch('${cardId}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept||''}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}','${isGoalLine}','${(p.url||'').replace(/'/g,"\\'")}')">
           Add
         </button>
-        ${p.url?`<a href="${p.url}" target="_blank" rel="noopener" class="btn btn-sm" style="padding:4px 8px;text-decoration:none" title="View on cfb.fan"></a>`:''}
+        ${p.url?`<a href="${p.url}" target="_blank" rel="noopener" class="btn btn-sm" style="padding:4px 8px;text-decoration:none" title="View on cfb.fan">&#128065;</a>`:''}
       </div>
     </div>`;
   }).join('');
@@ -1246,7 +1313,7 @@ function renderPBPanel() {
         <div class="pb-play">
           <div class="pb-play-name">
             ${esc(p.name)}
-            ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" title="View play art on cfb.fan" style="color:var(--text3);font-size:12px;margin-left:4px;text-decoration:none" onmouseover="this.style.color='var(--navy)'" onmouseout="this.style.color='var(--text3)'"></a>` : ''}
+            ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" title="View play art on cfb.fan" style="color:var(--text3);font-size:12px;margin-left:4px;text-decoration:none" onmouseover="this.style.color='var(--navy)'" onmouseout="this.style.color='var(--text3)'">&#128065;</a>` : ''}
           </div>
           <div class="pb-play-right">
             ${p.isRPO ? '<span class="badge badge-rpo">RPO</span>' : ''}
