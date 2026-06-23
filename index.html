@@ -214,16 +214,16 @@
 
 <header class="site-header">
   <a class="site-logo" href="#">
-    <div class="logo-badge">SFL</div>
+    <img src="./SFL_Logo_2.png" alt="SFL Logo" style="height:44px;width:44px;object-fit:contain;border-radius:4px">
     <div>
       <div class="logo-text">SFL Playbook Maker</div>
       <div class="logo-sub">CFB Dynasty League</div>
     </div>
   </a>
   <nav class="nav">
-    <button class="nav-btn active" onclick="showPage('builder')">&#9998; Builder</button>
-    <button class="nav-btn" onclick="showPage('library')">&#128218; Library</button>
-    <button class="nav-btn" onclick="showPage('rules')">&#128203; Rules</button>
+    <button class="nav-btn active" onclick="showPage('builder')">Builder</button>
+    <button class="nav-btn" onclick="showPage('library')">Library</button>
+    <button class="nav-btn" onclick="showPage('rules')">Rules</button>
   </nav>
 </header>
 
@@ -239,7 +239,7 @@
   <!-- STEP 1: Setup + Concepts combined -->
   <div id="setup-panel">
     <div class="card">
-      <div class="card-title">&#127944; Team setup</div>
+      <div class="card-title">Team Setup</div>
       <div class="grid2">
         <div class="field">
           <label>Your SFL team name</label>
@@ -260,32 +260,32 @@
     </div>
 
     <div class="card">
-      <div class="card-title">&#127939; Run concepts</div>
+      <div class="card-title">Run Concepts</div>
       <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Choose 1–2 run concepts. Adding a 3rd drops your max pass plays from 85 to 55 and bumps your RPO limit to 20.</p>
       <div class="concepts-grid">
         <div class="concept-card zone" id="concept-Zone" onclick="toggleConcept('Zone')">
-          <div class="concept-name" style="color:var(--green-text)">&#127358; Zone</div>
+          <div class="concept-name" style="color:var(--green-text)">Zone</div>
           <div class="concept-desc">Inside/Outside Zone, Sweep, Stretch, Read Option, Speed Option</div>
         </div>
         <div class="concept-card power" id="concept-Power" onclick="toggleConcept('Power')">
-          <div class="concept-name" style="color:#712b13">&#128170; Power</div>
+          <div class="concept-name" style="color:#712b13">Power</div>
           <div class="concept-desc">Dive, Power O, Lead, Blast, Buck, Smash, Iso</div>
         </div>
         <div class="concept-card counter" id="concept-Counter" onclick="toggleConcept('Counter')">
-          <div class="concept-name" style="color:var(--amber-text)">&#129300; Counter</div>
+          <div class="concept-name" style="color:var(--amber-text)">Counter</div>
           <div class="concept-desc">Counter, GT Counter, QB Wrap, Veer, Triple Option</div>
         </div>
         <div class="concept-card trap" id="concept-Trap" onclick="toggleConcept('Trap')">
-          <div class="concept-name" style="color:var(--purple-text)">&#128270; Trap</div>
+          <div class="concept-name" style="color:var(--purple-text)">Trap</div>
           <div class="concept-desc">Trap, Toss, Wham, Pin &amp; Pull Toss, Crack Toss</div>
         </div>
       </div>
       <div class="concept-warning" id="concept-warning">
-        &#9888; 3 run concepts selected — max pass plays drops from 85 to 55. RPO limit increases to 20.
+        3 run concepts selected — max pass plays drops from 85 to 55. RPO limit increases to 20.
       </div>
       <div style="display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap">
         <button class="btn btn-primary" id="setup-next-btn" onclick="goToStep(2)" disabled>
-          Start building playbook &#8594;
+          Start Building Playbook →
         </button>
         <span id="concepts-count" style="font-size:12px;color:var(--text2)">Select your team name, scheme, and at least 1 run concept</span>
       </div>
@@ -299,12 +299,12 @@
       <!-- Left: Play browser -->
       <div>
         <div class="card">
-          <div class="card-title">&#128218; Browse plays</div>
+          <div class="card-title">Browse Plays</div>
 
           <!-- Mode tabs -->
           <div style="display:flex;gap:3px;background:var(--bg);border-radius:var(--radius-sm);padding:3px;margin-bottom:10px">
-            <button id="tab-browse" class="btn" style="flex:1;justify-content:center;font-size:12px;background:var(--surface);border-color:var(--border2)" onclick="setPlayTab('browse')">&#127937; By formation</button>
-            <button id="tab-search" class="btn" style="flex:1;justify-content:center;font-size:12px" onclick="setPlayTab('search')">&#128269; Search all plays</button>
+            <button id="tab-browse" class="btn" style="flex:1;justify-content:center;font-size:12px;background:var(--surface);border-color:var(--border2)" onclick="setPlayTab('browse')">By Formation</button>
+            <button id="tab-search" class="btn" style="flex:1;justify-content:center;font-size:12px" onclick="setPlayTab('search')">Search All Plays</button>
           </div>
 
           <!-- Browse mode -->
@@ -352,7 +352,7 @@
       <div class="sticky-panel">
         <!-- Validation meters -->
         <div class="card" id="validation-card">
-          <div class="card-title">&#9989; Live validation
+          <div class="card-title">Live Validation
             <span id="val-status-badge" style="margin-left:auto;font-size:11px"></span>
           </div>
           <div class="meters" id="meters"></div>
@@ -369,15 +369,15 @@
             <div style="flex:1">
               <div style="font-size:11px;color:var(--text2)">Saving as: <strong id="pb-save-name" style="color:var(--text)">—</strong></div>
             </div>
-            <button class="btn" onclick="clearDraft();goToStep(1)" style="font-size:11px">&#8592; Start over</button>
-            <button class="btn btn-gold" id="submit-btn" onclick="submitPlaybook()" disabled>Submit playbook</button>
+            <button class="btn" onclick="clearDraft();goToStep(1)" style="font-size:11px">← Start Over</button>
+            <button class="btn btn-gold" id="submit-btn" onclick="submitPlaybook()" disabled>Submit Playbook</button>
           </div>
         </div>
 
         <!-- Current playbook list -->
         <div class="card">
           <div class="card-title">
-            &#127944; Current playbook
+            Current Playbook
             <span id="pb-play-count" style="margin-left:auto;font-size:11px;color:var(--text2)">0 / 125 plays</span>
           </div>
           <div id="pb-panel">
@@ -403,7 +403,7 @@
       <option>Spread Option/Power Option</option>
       <option>Veer &amp; Shoot/Run &amp; Shoot</option>
     </select>
-    <button class="btn btn-primary" onclick="showPage('builder')">+ New playbook</button>
+    <button class="btn btn-primary" onclick="showPage('builder')">+ New Playbook</button>
   </div>
   <div class="lib-grid" id="lib-grid">
     <div class="empty-state">No playbooks submitted yet.</div>
@@ -413,7 +413,7 @@
 <!-- ══════════════════ RULES PAGE ══════════════════ -->
 <div id="page-rules" class="page">
   <div class="card">
-    <div class="card-title">&#128203; SFL CFB 26 — Offensive Playbook Rules</div>
+    <div class="card-title">SFL CFB 26 — Offensive Playbook Rules</div>
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <tr style="background:var(--surface2)"><th style="padding:7px 10px;text-align:left;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2)">Rule</th><th style="padding:7px 10px;text-align:left;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2)">Limit</th><th style="padding:7px 10px;text-align:left;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2)">Notes</th></tr>
       <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Max total plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>125</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Excludes Goal Line, Hail Mary, Special Teams</td></tr>
@@ -430,7 +430,7 @@
     </table>
   </div>
   <div class="card">
-    <div class="card-title">&#128683; Banned formations</div>
+    <div class="card-title">Banned Formations</div>
     <div class="tag-row">
       <span class="badge badge-any" style="font-size:11px;padding:4px 10px">Flexbone</span>
       <span class="badge badge-any" style="font-size:11px;padding:4px 10px">Any Empty Bunch Quads variation</span>
@@ -439,7 +439,7 @@
     <p style="font-size:11px;color:var(--text2);margin-top:8px">Wishbone allowed only if you delete all Goal Line plays — it becomes your new Goal Line set.</p>
   </div>
   <div class="card">
-    <div class="card-title">&#127939; Run concept definitions</div>
+    <div class="card-title">Run Concept Definitions</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div style="background:var(--green-bg);border-radius:var(--radius-sm);padding:10px 12px">
         <div style="font-size:12px;font-weight:700;color:var(--green-text);margin-bottom:4px">Zone</div>
@@ -461,11 +461,11 @@
     <p style="font-size:11px;color:var(--text2);margin-top:8px"><strong>HB Draw &amp; HB Direct</strong> may be placed in any concept. HB Direct counts as a trick play.</p>
   </div>
   <div class="card">
-    <div class="card-title">&#127897; Audible requirements</div>
+    <div class="card-title">Audible Requirements</div>
     <p style="font-size:12px;color:var(--text2);line-height:1.8">Every formation/set must have: <strong>1 Quick Pass · 1 Run · 1 Deep Pass · 1 Play-Action</strong><br>RPOs, Option Plays, and Trick Plays may NOT be assigned as audibles.</p>
   </div>
   <div class="card">
-    <div class="card-title">&#127909; Creation protocol</div>
+    <div class="card-title">Creation Protocol</div>
     <p style="font-size:12px;color:var(--text2);line-height:1.8">You must stream the full creation of your playbook. Start by removing all non-goal-line plays. When finished, do a full play-by-play review, save as <strong>SFL_YourTeamName</strong>, then end stream.</p>
   </div>
 </div>
@@ -532,7 +532,7 @@ async function init() {
     console.error('Could not load plays_merged.json', e);
     document.getElementById('page-builder').innerHTML = `
       <div class="card"><div class="alert alert-err">
-        &#9888; Could not load play database. Make sure plays_merged.json is in the same folder as index.html.
+         Could not load play database. Make sure plays_merged.json is in the same folder as index.html.
       </div></div>`;
     return;
   }
@@ -719,7 +719,7 @@ function renderPlayBrowser() {
   // Goal line note banner
   const glBanner = isGoalLine
     ? `<div class="alert alert-info" style="margin-bottom:10px;font-size:11px">
-        &#128293; Goal Line / Hail Mary plays do <strong>not</strong> count toward your 125-play limit or formation count.
+        Goal Line / Hail Mary plays do <strong>not</strong> count toward your 125-play limit or formation count.
        </div>`
     : '';
 
@@ -766,7 +766,7 @@ function renderPlayBrowser() {
           ${!canAdd&&!already?'disabled':''}>
           ${already ? 'Remove' : 'Add'}
         </button>
-        ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener" class="btn btn-sm" title="View play art on cfb.fan" style="padding:4px 8px;text-decoration:none">&#128065;</a>` : ''}
+        ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener" class="btn btn-sm" title="View play art on cfb.fan" style="padding:4px 8px;text-decoration:none"></a>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -934,7 +934,7 @@ function renderGlobalSearch() {
           onclick="addFromSearch('${cardId}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept||''}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}','${isGoalLine}','${(p.url||'').replace(/'/g,"\\'")}')">
           Add
         </button>
-        ${p.url?`<a href="${p.url}" target="_blank" rel="noopener" class="btn btn-sm" style="padding:4px 8px;text-decoration:none" title="View on cfb.fan">&#128065;</a>`:''}
+        ${p.url?`<a href="${p.url}" target="_blank" rel="noopener" class="btn btn-sm" style="padding:4px 8px;text-decoration:none" title="View on cfb.fan"></a>`:''}
       </div>
     </div>`;
   }).join('');
@@ -1190,7 +1190,7 @@ function renderValidation() {
 
   const badge = document.getElementById('val-status-badge');
   if (isValid && v.total > 0) {
-    badge.innerHTML = '<span style="color:var(--green);font-weight:600">&#10003; Valid</span>';
+    badge.innerHTML = '<span style="color:var(--green);font-weight:600">✓ Valid</span>';
   } else if (v.errors.length > 0) {
     badge.innerHTML = `<span style="color:var(--red)">${v.errors.length} error${v.errors.length>1?'s':''}</span>`;
   } else {
@@ -1246,7 +1246,7 @@ function renderPBPanel() {
         <div class="pb-play">
           <div class="pb-play-name">
             ${esc(p.name)}
-            ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" title="View play art on cfb.fan" style="color:var(--text3);font-size:12px;margin-left:4px;text-decoration:none" onmouseover="this.style.color='var(--navy)'" onmouseout="this.style.color='var(--text3)'">&#128065;</a>` : ''}
+            ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" title="View play art on cfb.fan" style="color:var(--text3);font-size:12px;margin-left:4px;text-decoration:none" onmouseover="this.style.color='var(--navy)'" onmouseout="this.style.color='var(--text3)'"></a>` : ''}
           </div>
           <div class="pb-play-right">
             ${p.isRPO ? '<span class="badge badge-rpo">RPO</span>' : ''}
@@ -1348,13 +1348,13 @@ function renderLibrary() {
             <span class="badge badge-scheme ${schemeCls(pb.scheme)}">${esc(pb.scheme)}</span>
             ${conceptBadges}
             ${isValid
-              ? '<span style="font-size:10px;color:var(--green-text);font-weight:600">&#10003; Valid</span>'
-              : `<span style="font-size:10px;color:var(--red);font-weight:600">&#9888; ${v.errors.length} error${v.errors.length>1?'s':''}</span>`}
+              ? '<span style="font-size:10px;color:var(--green-text);font-weight:600">✓ Valid</span>'
+              : `<span style="font-size:10px;color:var(--red);font-weight:600"> ${v.errors.length} error${v.errors.length>1?'s':''}</span>`}
           </div>
         </div>
         <div style="display:flex;gap:4px">
           <button class="btn btn-sm" onclick="loadForEdit(${ri})">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deletePB(${ri})">&#128465;</button>
+          <button class="btn btn-sm btn-danger" onclick="deletePB(${ri})"></button>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:8px 0">
