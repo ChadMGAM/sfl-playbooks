@@ -33,9 +33,9 @@
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
 
   /* ── Header ── */
-  .site-header { background: var(--navy); padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .site-header { background: var(--navy); padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100; }
   .site-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-  .logo-badge { width: 34px; height: 34px; background: var(--gold); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: var(--navy-dark); letter-spacing: 0.5px; }
+  .logo-img { height: 52px; width: 52px; object-fit: contain; mix-blend-mode: lighten; }
   .logo-text { color: #fff; font-size: 15px; font-weight: 600; }
   .logo-sub { color: rgba(255,255,255,0.5); font-size: 11px; }
   .nav { display: flex; gap: 2px; }
@@ -214,7 +214,7 @@
 
 <header class="site-header">
   <a class="site-logo" href="#">
-    <img src="./SFL_Logo_2.png" alt="SFL Logo" style="height:44px;width:44px;object-fit:contain;border-radius:4px">
+    <img src="SFL_Logo_2.png" alt="SFL Logo" class="logo-img">
     <div>
       <div class="logo-text">SFL Playbook Maker</div>
       <div class="logo-sub">CFB Dynasty League</div>
