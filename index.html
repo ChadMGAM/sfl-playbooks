@@ -454,7 +454,7 @@
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <tr style="background:var(--surface2)"><th style="padding:7px 10px;text-align:left;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2)">Rule</th><th style="padding:7px 10px;text-align:left;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2)">Limit</th><th style="padding:7px 10px;text-align:left;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2)">Notes</th></tr>
       <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Max total plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>150</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Excludes Goal Line, Hail Mary, Special Teams</td></tr>
-      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Pass plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>40 min / 85 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Max drops to 65 if you use a 3rd run concept</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Pass plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>50 min / 85 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Max drops to 65 if you use a 3rd run concept</td></tr>
       <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Run plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>50 min</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Max 2 run concepts (or 3 with penalty)</td></tr>
       <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Option plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>15 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">20 max with 3rd run concept. Counted within run plays</td></tr>
       <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">RPO plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>15 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">20 max with 3rd concept. Count as pass plays only</td></tr>
@@ -716,8 +716,8 @@ function toggleConcept(c) {
   document.getElementById('concepts-count').textContent =
     n === 0 ? 'Select your team name, scheme, and at least 1 run concept' :
     n === 1 ? '1 concept selected — you can add 1–2 more' :
-    n === 2 ? '2 concepts selected ✓ — optionally add a 3rd (reduces max pass plays to 55)' :
-              '3 concepts selected — max pass plays: 55, RPO limit: 20';
+    n === 2 ? '2 concepts selected ✓ — optionally add a 3rd (reduces max pass plays to 65)' :
+              '3 concepts selected — max pass plays: 65, RPO limit: 20';
 
   checkSetupComplete();
   // Update formation dropdown labels and stats if already building
@@ -1209,7 +1209,7 @@ function loadDraft() {
     document.getElementById('concepts-count').textContent = n === 0 ? 'Select your team name, scheme, and at least 1 run concept' :
       n === 1 ? '1 concept selected — you can add 1–2 more' :
       n === 2 ? '2 concepts selected ✓ — optionally add a 3rd' :
-                '3 concepts selected — max pass plays: 55, RPO limit: 20';
+                '3 concepts selected — max pass plays: 65, RPO limit: 20';
     document.getElementById('setup-next-btn').disabled = false;
     return true;
   } catch(e) { return false; }
@@ -1280,7 +1280,7 @@ function validate(pb) {
     maxPass, maxRPO, maxOption,
     errors: [
       total > 150                      && `Total plays: ${total}/150 max`,
-      passTotal < 40                   && `Pass plays: ${passTotal} — need 40 min`,
+      passTotal < 50                   && `Pass plays: ${passTotal} — need 50 min`,
       passTotal > maxPass              && `Pass plays: ${passTotal} — max is ${maxPass}`,
       runPlays.length < 50             && `Run plays: ${runPlays.length} — need 50 min`,
       rpoPlays.length > maxRPO         && `RPOs: ${rpoPlays.length} — max ${maxRPO}`,
@@ -1311,10 +1311,10 @@ function renderValidation() {
       <div class="pbar"><div class="pbar-fill ${v.total>150?'err':'ok'}" style="width:${pct(v.total,150)}%"></div></div>
     </div>
     <div class="meter">
-      <div class="meter-val ${cls(v.passTotal,40,v.maxPass)}">${v.passTotal}</div>
+      <div class="meter-val ${cls(v.passTotal,50,v.maxPass)}">${v.passTotal}</div>
       <div class="meter-label">Pass plays</div>
-      <div class="meter-limit">40–${v.maxPass}</div>
-      <div class="pbar"><div class="pbar-fill ${cls(v.passTotal,40,v.maxPass)}" style="width:${pct(v.passTotal,v.maxPass)}%"></div></div>
+      <div class="meter-limit">50–${v.maxPass}</div>
+      <div class="pbar"><div class="pbar-fill ${cls(v.passTotal,50,v.maxPass)}" style="width:${pct(v.passTotal,v.maxPass)}%"></div></div>
     </div>
     <div class="meter">
       <div class="meter-val ${v.runCount < 50 ? 'err' : 'ok'}">${v.runCount}</div>
@@ -1364,7 +1364,7 @@ function renderValidation() {
     ...v.errors.map(e => ({ type:'err', text:e })),
     ...v.warnings.map(w => ({ type:'warn', text:w })),
     v.total <= 150 && v.total > 0                && { type:'ok', text:`Total plays: ${v.total}/150` },
-    v.passTotal >= 40 && v.passTotal <= v.maxPass && { type:'ok', text:`Pass plays: ${v.passTotal} (40–${v.maxPass})` },
+    v.passTotal >= 50 && v.passTotal <= v.maxPass && { type:'ok', text:`Pass plays: ${v.passTotal} (50–${v.maxPass})` },
     v.runCount >= 50                              && { type:'ok', text:`Run plays: ${v.runCount} (50+ required)` },
     v.rpoCount <= v.maxRPO                        && { type:'ok', text:`RPOs: ${v.rpoCount}/${v.maxRPO} max` },
     v.optionCount <= v.maxOption                  && { type:'ok', text:`Option plays: ${v.optionCount}/${v.maxOption} max` },
