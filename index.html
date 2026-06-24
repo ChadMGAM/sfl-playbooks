@@ -290,7 +290,7 @@
 
     <div class="card">
       <div class="card-title">Run Concepts</div>
-      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Choose 1–2 run concepts. Adding a 3rd drops your max pass plays from 85 to 55 and bumps your RPO limit to 20.</p>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Choose 1–2 run concepts. Adding a 3rd drops your max pass plays from 85 to 65 and bumps your RPO limit to 20.</p>
       <div class="concepts-grid">
         <div class="concept-card zone" id="concept-Zone" onclick="toggleConcept('Zone')">
           <div class="concept-name" style="color:var(--green-text)">Zone</div>
@@ -314,7 +314,7 @@
         </div>
       </div>
       <div class="concept-warning" id="concept-warning">
-        3 run concepts selected — max pass plays drops from 85 to 55. RPO limit increases to 20.
+        3 run concepts selected — max pass plays drops from 85 to 65. RPO limit increases to 20.
       </div>
       <div style="display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap">
         <button class="btn btn-primary" id="setup-next-btn" onclick="goToStep(2)" disabled>
@@ -453,9 +453,9 @@
     <div class="card-title">SFL CFB 26 — Offensive Playbook Rules</div>
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <tr style="background:var(--surface2)"><th style="padding:7px 10px;text-align:left;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2)">Rule</th><th style="padding:7px 10px;text-align:left;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2)">Limit</th><th style="padding:7px 10px;text-align:left;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2)">Notes</th></tr>
-      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Max total plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>125</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Excludes Goal Line, Hail Mary, Special Teams</td></tr>
-      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Pass plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>40 min / 85 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Max drops to 55 if you use a 3rd run concept</td></tr>
-      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Run plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>40 min</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Max 2 run concepts (or 3 with penalty)</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Max total plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>150</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Excludes Goal Line, Hail Mary, Special Teams</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Pass plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>40 min / 85 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Max drops to 65 if you use a 3rd run concept</td></tr>
+      <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Run plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>50 min</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">Max 2 run concepts (or 3 with penalty)</td></tr>
       <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Option plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>15 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">20 max with 3rd run concept. Counted within run plays</td></tr>
       <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">RPO plays</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>15 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">20 max with 3rd concept. Count as pass plays only</td></tr>
       <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border2)">Auto-motion pass</td><td style="padding:7px 10px;border-bottom:1px solid var(--border2)"><strong>25 max</strong></td><td style="padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text2)">No limit on auto-motion run plays</td></tr>
@@ -916,7 +916,7 @@ function renderPlayBrowser() {
     const rpoOk = isGoalLine || isRPOAllowed(p);
     const allowed = runOk && rpoOk;
     const nonGLCount = currentPB.plays.filter(p => !p.isGoalLine).length;
-    const overLimit = !already && !isGoalLine && nonGLCount >= 125;
+    const overLimit = !already && !isGoalLine && nonGLCount >= 150;
     const trickFull = !already && p.isTrick && v.trickCount >= 10;
     const canAdd = !overLimit && !trickFull && allowed;
 
@@ -968,7 +968,7 @@ function updateSearchCardBtn(cardId, slug, name, isRun, runConcept, isPass, isRP
   const key = `${fslug}||${slug}`;
   const inPB = currentPB.plays.some(p => p.key === key);
   const nonGLCount = currentPB.plays.filter(p => !p.isGoalLine).length;
-  const overLimit = !inPB && (isGoalLine !== 'true' && isGoalLine !== true) && nonGLCount >= 125;
+  const overLimit = !inPB && (isGoalLine !== 'true' && isGoalLine !== true) && nonGLCount >= 150;
   const trickFull = !inPB && isTrick === 'true' && validate(currentPB).trickCount >= 10;
   btn.textContent = inPB ? 'Remove' : 'Add';
   btn.className = `btn btn-sm ${inPB ? 'btn-danger' : ''}`;
@@ -1102,7 +1102,7 @@ function renderGlobalSearch() {
     }).join('');
 
     const nonGLCount = currentPB.plays.filter(p => !p.isGoalLine).length;
-    const overLimit = !isGoalLine && nonGLCount >= 125;
+    const overLimit = !isGoalLine && nonGLCount >= 150;
     const trickFull = p.isTrick && v.trickCount >= 10;
 
     return `<div class="play-card ${!allowed?'blocked':''}" id="${cardId}">
@@ -1254,7 +1254,7 @@ function validate(pb) {
   const allPlays = pb.plays || [];
   const concepts = pb.concepts || [];
   const use3 = concepts.length >= 3;
-  const maxPass   = use3 ? 55 : 85;
+  const maxPass   = use3 ? 65 : 85;
   const maxRPO    = use3 ? 20 : 15;
   const maxOption = use3 ? 20 : 15;
 
@@ -1279,10 +1279,10 @@ function validate(pb) {
     glCount: allPlays.filter(p => p.isGoalLine).length,
     maxPass, maxRPO, maxOption,
     errors: [
-      total > 125                      && `Total plays: ${total}/125 max`,
+      total > 150                      && `Total plays: ${total}/150 max`,
       passTotal < 40                   && `Pass plays: ${passTotal} — need 40 min`,
       passTotal > maxPass              && `Pass plays: ${passTotal} — max is ${maxPass}`,
-      runPlays.length < 40             && `Run plays: ${runPlays.length} — need 40 min`,
+      runPlays.length < 50             && `Run plays: ${runPlays.length} — need 50 min`,
       rpoPlays.length > maxRPO         && `RPOs: ${rpoPlays.length} — max ${maxRPO}`,
       optionPlays.length > maxOption   && `Option plays: ${optionPlays.length} — max ${maxOption}`,
       autoPass.length > 25             && `Auto-motion pass: ${autoPass.length} — max 25`,
@@ -1305,10 +1305,10 @@ function renderValidation() {
 
   document.getElementById('meters').innerHTML = `
     <div class="meter">
-      <div class="meter-val ${v.total > 125 ? 'err' : 'ok'}">${v.total}</div>
+      <div class="meter-val ${v.total > 150 ? 'err' : 'ok'}">${v.total}</div>
       <div class="meter-label">Total plays</div>
-      <div class="meter-limit">max 125</div>
-      <div class="pbar"><div class="pbar-fill ${v.total>125?'err':'ok'}" style="width:${pct(v.total,125)}%"></div></div>
+      <div class="meter-limit">max 150</div>
+      <div class="pbar"><div class="pbar-fill ${v.total>150?'err':'ok'}" style="width:${pct(v.total,150)}%"></div></div>
     </div>
     <div class="meter">
       <div class="meter-val ${cls(v.passTotal,40,v.maxPass)}">${v.passTotal}</div>
@@ -1317,10 +1317,10 @@ function renderValidation() {
       <div class="pbar"><div class="pbar-fill ${cls(v.passTotal,40,v.maxPass)}" style="width:${pct(v.passTotal,v.maxPass)}%"></div></div>
     </div>
     <div class="meter">
-      <div class="meter-val ${v.runCount < 40 ? 'err' : 'ok'}">${v.runCount}</div>
+      <div class="meter-val ${v.runCount < 50 ? 'err' : 'ok'}">${v.runCount}</div>
       <div class="meter-label">Run plays</div>
-      <div class="meter-limit">min 40</div>
-      <div class="pbar"><div class="pbar-fill ${v.runCount<40?'warn':'ok'}" style="width:${pct(v.runCount,80)}%"></div></div>
+      <div class="meter-limit">min 50</div>
+      <div class="pbar"><div class="pbar-fill ${v.runCount<50?'warn':'ok'}" style="width:${pct(v.runCount,100)}%"></div></div>
     </div>
     <div class="meter">
       <div class="meter-val ${v.rpoCount > v.maxRPO ? 'err' : 'ok'}">${v.rpoCount}</div>
@@ -1363,9 +1363,9 @@ function renderValidation() {
   const allItems = [
     ...v.errors.map(e => ({ type:'err', text:e })),
     ...v.warnings.map(w => ({ type:'warn', text:w })),
-    v.total <= 125 && v.total > 0                && { type:'ok', text:`Total plays: ${v.total}/125` },
+    v.total <= 150 && v.total > 0                && { type:'ok', text:`Total plays: ${v.total}/150` },
     v.passTotal >= 40 && v.passTotal <= v.maxPass && { type:'ok', text:`Pass plays: ${v.passTotal} (40–${v.maxPass})` },
-    v.runCount >= 40                              && { type:'ok', text:`Run plays: ${v.runCount} (40+ required)` },
+    v.runCount >= 50                              && { type:'ok', text:`Run plays: ${v.runCount} (50+ required)` },
     v.rpoCount <= v.maxRPO                        && { type:'ok', text:`RPOs: ${v.rpoCount}/${v.maxRPO} max` },
     v.optionCount <= v.maxOption                  && { type:'ok', text:`Option plays: ${v.optionCount}/${v.maxOption} max` },
     v.trickCount <= 10                            && { type:'ok', text:`Trick plays: ${v.trickCount}/10 max` },
@@ -1387,7 +1387,7 @@ function renderValidation() {
   }
 
   document.getElementById('submit-btn').disabled = !isValid || v.total === 0;
-  document.getElementById('pb-play-count').textContent = `${v.total} / 125 plays`;
+  document.getElementById('pb-play-count').textContent = `${v.total} / 150 plays`;
   renderConceptChart(currentPB);
 }
 
