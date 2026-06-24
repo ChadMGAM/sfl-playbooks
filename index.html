@@ -503,6 +503,24 @@
   </div>
 </div>
 
+<!-- ══════════════════ VIEW PLAYBOOK MODAL ══════════════════ -->
+<div id="view-modal" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.55);align-items:flex-start;justify-content:center;padding:1.5rem;overflow-y:auto" onclick="if(event.target===this)closeViewModal()">
+  <div style="background:var(--surface);border-radius:var(--radius-lg);width:min(720px,95vw);box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;margin:auto">
+    <div style="background:var(--navy);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div id="vm-title" style="font-size:16px;font-weight:700;color:#fff"></div>
+        <div id="vm-meta" style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:3px"></div>
+      </div>
+      <button onclick="closeViewModal()" style="background:rgba(255,255,255,0.15);border:none;cursor:pointer;color:#fff;border-radius:6px;width:30px;height:30px;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0">&#215;</button>
+    </div>
+    <!-- Stats row -->
+    <div id="vm-stats" style="display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border2)">
+    </div>
+    <!-- Plays by formation -->
+    <div id="vm-plays" style="padding:16px 20px;max-height:60vh;overflow-y:auto"></div>
+  </div>
+</div>
+
 <script>// ── Security helpers ───────────────────────────────────────────────────────
 function esc(str) {
   // Escape HTML to prevent XSS when inserting user content into innerHTML
@@ -1441,8 +1459,9 @@ function renderLibrary() {
           </div>
         </div>
         <div style="display:flex;gap:4px">
+          <button class="btn btn-sm" onclick="viewPlaybook(${ri})">View</button>
           <button class="btn btn-sm" onclick="loadForEdit(${ri})">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deletePB(${ri})"></button>
+          <button class="btn btn-sm btn-danger" title="Delete playbook" onclick="deletePB(${ri})" style="padding:4px 8px">&#128465;</button>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:8px 0">
@@ -1461,6 +1480,83 @@ function renderLibrary() {
     </div>`;
   }).join('');
 }
+
+// ── View playbook modal ────────────────────────────────────────────────────
+function viewPlaybook(idx) {
+  const pb = playbooks[idx];
+  if (!pb) return;
+
+  document.getElementById('vm-title').textContent = pb.saveName;
+  document.getElementById('vm-meta').textContent =
+    `${pb.teamName} · ${pb.scheme} · Submitted ${pb.submitted||'—'} · Concepts: ${(pb.concepts||[]).join(', ')}`;
+
+  const plays = pb.plays || [];
+  const nonGL = plays.filter(p => !p.isGoalLine);
+  const glPlays = plays.filter(p => p.isGoalLine);
+  const stats = [
+    ['Pass',      nonGL.filter(p=>p.isPass&&!p.isRPO).length + nonGL.filter(p=>p.isRPO).length],
+    ['Run',       nonGL.filter(p=>p.isRun).length],
+    ['RPO',       nonGL.filter(p=>p.isRPO).length],
+    ['Option',    nonGL.filter(p=>p.isOption).length],
+    ['Trick',     plays.filter(p=>p.isTrick).length],
+    ['Sets',      new Set(nonGL.map(p=>p.formation)).size],
+    ['Total',     nonGL.length],
+    ['Goal Line', glPlays.length],
+  ];
+  document.getElementById('vm-stats').style.gridTemplateColumns = `repeat(${stats.length},1fr)`;
+  document.getElementById('vm-stats').innerHTML = stats.map(([l,n]) => `
+    <div style="background:var(--surface2);padding:10px 8px;text-align:center">
+      <div style="font-size:16px;font-weight:700;color:var(--text)">${n}</div>
+      <div style="font-size:9px;color:var(--text2);margin-top:2px;text-transform:uppercase;letter-spacing:.3px">${esc(l)}</div>
+    </div>`).join('');
+
+  const grouped = {};
+  plays.forEach(p => {
+    if (!grouped[p.formation]) grouped[p.formation] = [];
+    grouped[p.formation].push(p);
+  });
+  const sorted = Object.entries(grouped).sort((a,b) => {
+    const aGL = a[1][0].isGoalLine;
+    const bGL = b[1][0].isGoalLine;
+    if (aGL !== bGL) return aGL ? 1 : -1;
+    return a[0].localeCompare(b[0]);
+  });
+
+  document.getElementById('vm-plays').innerHTML = sorted.map(([f, fplays]) => {
+    const isGL = fplays[0].isGoalLine;
+    const fname = f.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    return `
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:${isGL?'var(--text3)':'var(--text2)'};text-transform:uppercase;letter-spacing:.4px;padding-bottom:5px;border-bottom:1px solid var(--border2);margin-bottom:6px${isGL?';font-style:italic':''}">
+          ${esc(fname)} (${fplays.length})${isGL?' — goal line':''}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px">
+          ${fplays.map(p => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px">
+              <span>${esc(p.name)}</span>
+              <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;margin-left:6px">
+                ${p.isRPO?'<span class="badge badge-rpo" style="font-size:8px">RPO</span>':''}
+                ${p.isOption?'<span class="badge badge-auto" style="font-size:8px">Opt</span>':''}
+                ${p.isTrick?'<span class="badge badge-trick" style="font-size:8px">Trick</span>':''}
+                ${p.isRun&&!p.isRPO?`<span class="badge badge-${(p.runConcept||'any').toLowerCase()}" style="font-size:8px">${esc(p.runConcept||'Run')}</span>`:''}
+                ${p.isPass&&!p.isRPO&&!p.isTrick?'<span class="badge badge-pass" style="font-size:8px">Pass</span>':''}
+                ${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:var(--text3);font-size:11px;text-decoration:none" title="View on cfb.fan">&#128065;</a>`:''}
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('view-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeViewModal() {
+  document.getElementById('view-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeViewModal(); });
 
 function loadForEdit(idx) {
   const pb = playbooks[idx];
