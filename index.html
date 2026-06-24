@@ -720,8 +720,11 @@ function toggleConcept(c) {
               '3 concepts selected — max pass plays: 55, RPO limit: 20';
 
   checkSetupComplete();
-  // Update formation stats highlighting if we're already in build step
-  if (currentStep === 2) renderFormationStats();
+  // Update formation dropdown labels and stats if already building
+  if (currentStep === 2) {
+    populateFormationSelect();
+    renderFormationStats();
+  }
 }
 
 // ── Step 2: Build ──────────────────────────────────────────────────────────
@@ -742,17 +745,38 @@ function populateFormationSelect() {
   const regular = [], goalLine = [];
   Object.entries(formations).forEach(([slug, fdata]) => {
     const banned = BANNED.some(b => slug.includes(b));
-    (fdata.isGoalLine ? goalLine : regular).push({ slug, name: fdata.name, banned });
+
+    // Build concise stat label for this formation
+    const plays = fdata.plays;
+    const total   = plays.length;
+    const pass    = plays.filter(p => p.isPass && !p.isRPO).length;
+    const rpo     = plays.filter(p => p.isRPO).length;
+    const zone    = plays.filter(p => p.runConcept === 'Zone').length;
+    const power   = plays.filter(p => p.runConcept === 'Power').length;
+    const counter = plays.filter(p => p.runConcept === 'Counter').length;
+    const trap    = plays.filter(p => p.runConcept === 'Trap').length;
+
+    // Always show total + pass. Show RPO if >0. Show only the user's selected concepts.
+    const parts = [`${total} plays`, `Pass ${pass}`];
+    if (rpo)     parts.push(`RPO ${rpo}`);
+    if (selectedConcepts.includes('Zone')    && zone)    parts.push(`Zone ${zone}`);
+    if (selectedConcepts.includes('Power')   && power)   parts.push(`Power ${power}`);
+    if (selectedConcepts.includes('Counter') && counter) parts.push(`Counter ${counter}`);
+    if (selectedConcepts.includes('Trap')    && trap)    parts.push(`Trap ${trap}`);
+
+    const label = `${fdata.name}${banned ? ' ⛔' : ''} — ${parts.join(' · ')}`;
+    (fdata.isGoalLine ? goalLine : regular).push({ slug, label, banned });
   });
-  regular.sort((a,b) => a.name.localeCompare(b.name));
-  goalLine.sort((a,b) => a.name.localeCompare(b.name));
+
+  regular.sort((a,b) => a.label.localeCompare(b.label));
+  goalLine.sort((a,b) => a.label.localeCompare(b.label));
 
   const regGroup = document.createElement('optgroup');
   regGroup.label = `Formations (${regular.length} available)`;
-  regular.forEach(({ slug, name, banned }) => {
+  regular.forEach(({ slug, label }) => {
     const opt = document.createElement('option');
     opt.value = slug;
-    opt.textContent = name + (banned ? ' ⛔ BANNED' : '');
+    opt.textContent = label;
     regGroup.appendChild(opt);
   });
   sel.appendChild(regGroup);
@@ -760,10 +784,10 @@ function populateFormationSelect() {
   if (goalLine.length) {
     const glGroup = document.createElement('optgroup');
     glGroup.label = '⚑ Goal Line / Hail Mary — excluded from formation & play counts';
-    goalLine.forEach(({ slug, name }) => {
+    goalLine.forEach(({ slug, label }) => {
       const opt = document.createElement('option');
       opt.value = slug;
-      opt.textContent = name;
+      opt.textContent = label;
       glGroup.appendChild(opt);
     });
     sel.appendChild(glGroup);
