@@ -796,7 +796,8 @@ function renderPlayBrowser() {
     const runOk = isGoalLine || isRunAllowed(p);
     const rpoOk = isGoalLine || isRPOAllowed(p);
     const allowed = runOk && rpoOk;
-    const overLimit = !already && !isGoalLine && currentPB.plays.length >= 125;
+    const nonGLCount = currentPB.plays.filter(p => !p.isGoalLine).length;
+    const overLimit = !already && !isGoalLine && nonGLCount >= 125;
     const trickFull = !already && p.isTrick && v.trickCount >= 10;
     const canAdd = !overLimit && !trickFull && allowed;
 
@@ -847,7 +848,8 @@ function updateSearchCardBtn(cardId, slug, name, isRun, runConcept, isPass, isRP
   const fslug = sel.value;
   const key = `${fslug}||${slug}`;
   const inPB = currentPB.plays.some(p => p.key === key);
-  const overLimit = !inPB && currentPB.plays.length >= 125;
+  const nonGLCount = currentPB.plays.filter(p => !p.isGoalLine).length;
+  const overLimit = !inPB && (isGoalLine !== 'true' && isGoalLine !== true) && nonGLCount >= 125;
   const trickFull = !inPB && isTrick === 'true' && validate(currentPB).trickCount >= 10;
   btn.textContent = inPB ? 'Remove' : 'Add';
   btn.className = `btn btn-sm ${inPB ? 'btn-danger' : ''}`;
@@ -980,7 +982,8 @@ function renderGlobalSearch() {
       return `<option value="${fslug}" ${inPbAlready?'data-added="true"':''}>${fname}${inPbAlready?' ✓':''}</option>`;
     }).join('');
 
-    const overLimit = currentPB.plays.length >= 125;
+    const nonGLCount = currentPB.plays.filter(p => !p.isGoalLine).length;
+    const overLimit = !isGoalLine && nonGLCount >= 125;
     const trickFull = p.isTrick && v.trickCount >= 10;
 
     return `<div class="play-card ${!allowed?'blocked':''}" id="${cardId}">
