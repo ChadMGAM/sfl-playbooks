@@ -354,6 +354,10 @@
                 <option value="trick">Trick</option>
               </select>
             </div>
+            <!-- Formation stats — shown after selecting a formation -->
+            <div id="formation-stats" style="display:none;margin-top:8px;display:none">
+              <div style="display:flex;flex-wrap:wrap;gap:5px" id="formation-stat-chips"></div>
+            </div>
           </div>
 
           <!-- Search mode -->
@@ -716,6 +720,8 @@ function toggleConcept(c) {
               '3 concepts selected — max pass plays: 55, RPO limit: 20';
 
   checkSetupComplete();
+  // Update formation stats highlighting if we're already in build step
+  if (currentStep === 2) renderFormationStats();
 }
 
 // ── Step 2: Build ──────────────────────────────────────────────────────────
@@ -764,7 +770,60 @@ function populateFormationSelect() {
   }
 }
 
-function onFormationChange() { renderPlayBrowser(); }
+function onFormationChange() {
+  renderFormationStats();
+  renderPlayBrowser();
+}
+
+function renderFormationStats() {
+  const formation = document.getElementById('formation-select').value;
+  const statsEl = document.getElementById('formation-stats');
+  const chipsEl = document.getElementById('formation-stat-chips');
+
+  if (!formation || !DB || !currentPB.scheme) {
+    statsEl.style.display = 'none';
+    return;
+  }
+
+  const fdata = DB[currentPB.scheme]?.formations?.[formation];
+  if (!fdata) { statsEl.style.display = 'none'; return; }
+
+  const plays = fdata.plays;
+  const pass    = plays.filter(p => p.isPass && !p.isRPO).length;
+  const rpo     = plays.filter(p => p.isRPO).length;
+  const zone    = plays.filter(p => p.runConcept === 'Zone').length;
+  const power   = plays.filter(p => p.runConcept === 'Power').length;
+  const counter = plays.filter(p => p.runConcept === 'Counter').length;
+  const trap    = plays.filter(p => p.runConcept === 'Trap').length;
+  const draw    = plays.filter(p => p.runConcept === 'Any').length;
+  const option  = plays.filter(p => p.isOption).length;
+  const trick   = plays.filter(p => p.isTrick).length;
+
+  // A chip is "active" if it's a concept the user selected, "dim" if not relevant
+  function chip(label, count, colorVar, bgVar, isSelected) {
+    if (!count) return '';
+    const opacity = isSelected === false ? '0.3' : '1';
+    const style = `display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:10px;font-size:11px;font-weight:600;background:${bgVar};color:${colorVar};opacity:${opacity};transition:opacity .2s`;
+    return `<span style="${style}">${label} <span style="opacity:.7">${count}</span></span>`;
+  }
+
+  const hasConcepts = selectedConcepts.length > 0;
+
+  chipsEl.innerHTML = [
+    `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:10px;font-size:11px;font-weight:600;background:var(--surface2);color:var(--text2)">Total ${plays.length}</span>`,
+    chip('Pass',    pass,    'var(--blue-text)',   'var(--blue-bg)',   null),
+    chip('RPO',     rpo,     '#993556',            '#fbeaf0',         null),
+    chip('Zone',    zone,    'var(--green-text)',  'var(--green-bg)', hasConcepts ? selectedConcepts.includes('Zone')    : null),
+    chip('Power',   power,   '#712b13',            '#faece7',         hasConcepts ? selectedConcepts.includes('Power')   : null),
+    chip('Counter', counter, 'var(--amber-text)',  'var(--amber-bg)', hasConcepts ? selectedConcepts.includes('Counter') : null),
+    chip('Trap',    trap,    'var(--purple-text)', 'var(--purple-bg)',hasConcepts ? selectedConcepts.includes('Trap')    : null),
+    chip('Draw',    draw,    '#5a6377',            'var(--surface2)', null),
+    chip('Option',  option,  '#185fa5',            'var(--blue-bg)',  null),
+    chip('Trick',   trick,   '#5f5e5a',            '#f1efe8',         null),
+  ].filter(Boolean).join('');
+
+  statsEl.style.display = '';
+}
 
 function renderPlayBrowser() {
   if (!DB || !currentPB.scheme) return;
