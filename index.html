@@ -551,33 +551,28 @@ const BANNED = ['flexbone','empty-bunch-quads','gun-empty-bunch-quads','gun-bunc
 const RPO_ZONE_KEYS   = ['rpo-read','rpo-peek','rpo-glance','rpo-bubble','rpo-zone','rpo-x-glance'];
 const RPO_POWER_KEYS  = ['rpo-alert','rpo-split'];
 
-// ── Upstash Redis storage ──────────────────────────────────────────────────
-const KV_URL   = 'https://just-gar-153501.upstash.io';
-const KV_TOKEN = 'gQAAAAAAAledAAIgcDI2MTk1YTFjNDQ1MzY0MmRjOWU0ZGNkMTI1NzRmZGE5Ng';
-
-async function kvGet(key) {
-  const r = await fetch(`${KV_URL}/get/${encodeURIComponent(key)}`, {
-    headers: { Authorization: `Bearer ${KV_TOKEN}` }
-  });
-  if (!r.ok) throw new Error(`KV get failed: ${r.status}`);
+// ── Storage — calls Vercel serverless functions (token stays server-side) ──
+async function kvGet() {
+  const r = await fetch('/api/playbooks-get');
+  if (!r.ok) throw new Error(`Load failed: ${r.status}`);
   const j = await r.json();
-  return j.result; // null if key doesn't exist, string otherwise
+  return j.result; // null or JSON string
 }
 
-async function kvSet(key, value) {
-  const r = await fetch(`${KV_URL}/set/${encodeURIComponent(key)}`, {
+async function kvSet(value) {
+  const r = await fetch('/api/playbooks-set', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(value)
+    headers: { 'Content-Type': 'application/json' },
+    body: value, // already a JSON string
   });
-  if (!r.ok) throw new Error(`KV set failed: ${r.status}`);
+  if (!r.ok) throw new Error(`Save failed: ${r.status}`);
   return true;
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 async function init() {
   try {
-    const saved = await kvGet('sfl_playbooks_v3');
+    const saved = await kvGet();
     if (saved) playbooks = validateStoragePayload(JSON.parse(saved));
   } catch(e) { playbooks = []; }
 
@@ -1384,7 +1379,7 @@ async function submitPlaybook() {
   }
 
   try {
-    await kvSet('sfl_playbooks_v3', JSON.stringify(playbooks));
+    await kvSet(JSON.stringify(playbooks));
   } catch(e) {
     alert('⚠️ Playbook saved locally but could not sync to the league library. Try submitting again.');
     return;
@@ -1488,7 +1483,7 @@ function loadForEdit(idx) {
 function deletePB(idx) {
   if (!confirm('Delete this playbook?')) return;
   playbooks.splice(idx, 1);
-  kvSet('sfl_playbooks_v3', JSON.stringify(playbooks)).catch(()=>{});
+  kvSet(JSON.stringify(playbooks)).catch(()=>{});
   renderLibrary();
 }
 
