@@ -994,7 +994,7 @@ function updateSearchCardBtn(cardId, slug, name, isRun, runConcept, isPass, isRP
   btn.disabled = !inPB && (overLimit || trickFull || isGoalLine === false && String(isRun) === 'true' && !selectedConcepts.includes(runConcept) && runConcept !== 'Any' && runConcept !== '');
 }
 
-function addFromSearch(cardId, slug, name, isRun, runConcept, isPass, isRPO, isTrick, isAutoMotion, isGoalLine, url) {
+function addFromSearch(cardId, slug, name, isRun, runConcept, isPass, isRPO, isTrick, isAutoMotion, isGoalLine, isOption, url) {
   const sel = document.getElementById('fsel-' + cardId);
   if (!sel) return;
   const fslug = sel.value;
@@ -1012,6 +1012,7 @@ function addFromSearch(cardId, slug, name, isRun, runConcept, isPass, isRPO, isT
       isTrick: isTrick === 'true' || isTrick === true,
       isAutoMotion: isAutoMotion === 'true' || isAutoMotion === true,
       isGoalLine: isGoalLine === 'true' || isGoalLine === true,
+      isOption: isOption === 'true' || isOption === true,
     });
   }
   saveDraft();
@@ -1142,7 +1143,7 @@ function renderGlobalSearch() {
       </select>
       <div style="display:flex;gap:5px;margin-top:6px">
         <button class="btn btn-sm" style="flex:1" id="btn-${cardId}"
-          onclick="addFromSearch('${cardId}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept||''}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}','${isGoalLine}','${(p.url||'').replace(/'/g,"\\'")}')">
+          onclick="addFromSearch('${cardId}','${p.slug}','${p.name.replace(/'/g,"\\'")}','${p.isRun}','${p.runConcept||''}','${p.isPass}','${p.isRPO}','${p.isTrick}','${p.isAutoMotion}','${isGoalLine}','${p.isOption||false}','${(p.url||'').replace(/'/g,"\\'")}')">
           Add
         </button>
         ${p.url?`<a href="${p.url}" target="_blank" rel="noopener" class="btn btn-sm" style="padding:4px 8px;text-decoration:none" title="View on cfb.fan">&#128065;</a>`:''}
