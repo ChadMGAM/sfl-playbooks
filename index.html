@@ -140,11 +140,14 @@
   .badge-trick   { background: #f1efe8; color: #5f5e5a; }
   .badge-auto    { background: #fff3cd; color: #856404; font-size: 8px; }
   .badge-scheme  { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
-  .sch-spread  { background: var(--blue-bg);   color: var(--blue-text); }
-  .sch-multi   { background: var(--green-bg);  color: var(--green-text); }
-  .sch-air     { background: var(--purple-bg); color: var(--purple-text); }
-  .sch-opt     { background: #faece7; color: #712b13; }
-  .sch-veer    { background: var(--amber-bg);  color: var(--amber-text); }
+  .sch-spread    { background: var(--blue-bg);   color: var(--blue-text); }
+  .sch-multi     { background: var(--green-bg);  color: var(--green-text); }
+  .sch-air       { background: var(--purple-bg); color: var(--purple-text); }
+  .sch-opt       { background: #faece7; color: #712b13; }
+  .sch-veer      { background: var(--amber-bg);  color: var(--amber-text); }
+  .sch-pro       { background: #e8f4e8; color: #1a5c1a; }
+  .sch-pistol    { background: #e8f5f5; color: #0e5c5c; }
+  .sch-spread-opt{ background: #eef2ff; color: #3730a3; }
 
   /* ── Current playbook panel ── */
   .pb-panel { }
@@ -249,10 +252,13 @@
           <label>Offensive scheme</label>
           <select id="scheme-select" onchange="onSchemeChange()">
             <option value="">— Select scheme —</option>
-            <option value="Pistol/Spread">Pistol / Spread</option>
-            <option value="Multiple/Pro Style">Multiple / Pro Style</option>
             <option value="Air Raid">Air Raid</option>
-            <option value="Spread Option/Power Option">Spread Option / Power Option</option>
+            <option value="Spread">Spread</option>
+            <option value="Multiple">Multiple</option>
+            <option value="Pro Style">Pro Style</option>
+            <option value="Pistol">Pistol</option>
+            <option value="Power Option">Power Option</option>
+            <option value="Spread Option">Spread Option</option>
             <option value="Veer & Shoot/Run & Shoot">Veer &amp; Shoot / Run &amp; Shoot</option>
           </select>
         </div>
@@ -434,10 +440,13 @@
     <input type="text" placeholder="Search playbooks…" id="lib-search" oninput="renderLibrary()" style="flex:1;min-width:180px">
     <select id="lib-scheme-filter" onchange="renderLibrary()">
       <option value="">All schemes</option>
-      <option>Pistol/Spread</option>
-      <option>Multiple/Pro Style</option>
       <option>Air Raid</option>
-      <option>Spread Option/Power Option</option>
+      <option>Spread</option>
+      <option>Multiple</option>
+      <option>Pro Style</option>
+      <option>Pistol</option>
+      <option>Power Option</option>
+      <option>Spread Option</option>
       <option>Veer &amp; Shoot/Run &amp; Shoot</option>
     </select>
     <button class="btn btn-primary" onclick="showPage('builder')">+ New Playbook</button>
@@ -1515,7 +1524,16 @@ function renderLibrary() {
     return;
   }
 
-  const schemeCls = s => ({'Pistol/Spread':'sch-spread','Multiple/Pro Style':'sch-multi','Air Raid':'sch-air','Spread Option/Power Option':'sch-opt','Veer & Shoot/Run & Shoot':'sch-veer'}[s]||'sch-spread');
+  const schemeCls = s => ({
+    'Air Raid':                  'sch-air',
+    'Spread':                    'sch-spread',
+    'Multiple':                  'sch-multi',
+    'Pro Style':                 'sch-pro',
+    'Pistol':                    'sch-pistol',
+    'Power Option':              'sch-opt',
+    'Spread Option':             'sch-spread-opt',
+    'Veer & Shoot/Run & Shoot':  'sch-veer',
+  }[s] || 'sch-spread');
 
   grid.innerHTML = filtered.map((pb, i) => {
     const ri = playbooks.indexOf(pb);
