@@ -268,11 +268,11 @@
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-bottom:10px">
           <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px;text-align:center">
             <div id="stat-formations" style="font-size:20px;font-weight:700;color:var(--text)">—</div>
-            <div style="font-size:10px;color:var(--text2);margin-top:2px">Formations</div>
+            <div style="font-size:10px;color:var(--text2);margin-top:2px">Unique Formations</div>
           </div>
           <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px;text-align:center">
             <div id="stat-plays" style="font-size:20px;font-weight:700;color:var(--text)">—</div>
-            <div style="font-size:10px;color:var(--text2);margin-top:2px">Total Plays</div>
+            <div style="font-size:10px;color:var(--text2);margin-top:2px">Unique Plays</div>
           </div>
           <div style="background:var(--green-bg);border-radius:var(--radius-sm);padding:10px;text-align:center">
             <div id="stat-zone" style="font-size:20px;font-weight:700;color:var(--green-text)">—</div>
@@ -668,18 +668,27 @@ function onSchemeChange() {
     return;
   }
 
-  // Compute stats from the merged DB
+  // Compute stats from the merged DB — deduplicate plays by slug
   const formations = DB[scheme].formations || {};
   const regular = Object.values(formations).filter(f => !f.isGoalLine);
+  const uniquePlaySlugs = new Set();
+  regular.forEach(f => f.plays.forEach(p => uniquePlaySlugs.add(p.slug)));
   const allPlays = regular.flatMap(f => f.plays);
   const runPlays = allPlays.filter(p => p.isRun && !p.isRPO);
 
   const counts = { Zone: 0, Power: 0, Counter: 0, Trap: 0, Any: 0 };
-  runPlays.forEach(p => { if (counts[p.runConcept] !== undefined) counts[p.runConcept]++; });
+  // Deduplicate run plays by slug for concept counts too
+  const seenRunSlugs = new Set();
+  runPlays.forEach(p => {
+    if (!seenRunSlugs.has(p.slug) && counts[p.runConcept] !== undefined) {
+      counts[p.runConcept]++;
+      seenRunSlugs.add(p.slug);
+    }
+  });
 
   // Update scheme stats bar
   document.getElementById('stat-formations').textContent = regular.length.toLocaleString();
-  document.getElementById('stat-plays').textContent = allPlays.length.toLocaleString();
+  document.getElementById('stat-plays').textContent = uniquePlaySlugs.size.toLocaleString();
   document.getElementById('stat-zone').textContent = counts.Zone.toLocaleString();
   document.getElementById('stat-power').textContent = counts.Power.toLocaleString();
   document.getElementById('stat-counter').textContent = counts.Counter.toLocaleString();
@@ -689,7 +698,7 @@ function onSchemeChange() {
   // Update concept card sub-labels
   ['Zone','Power','Counter','Trap'].forEach(c => {
     const el = document.getElementById('concept-count-' + c);
-    if (el) el.textContent = counts[c] ? `${counts[c].toLocaleString()} plays available` : 'No plays in this scheme';
+    if (el) el.textContent = counts[c] ? `${counts[c].toLocaleString()} unique plays` : 'No plays in this scheme';
   });
 }
 
