@@ -1042,8 +1042,9 @@ function setPlayTab(tab) {
   } else {
     srchBtn.style.background  = 'var(--surface)'; srchBtn.style.borderColor  = 'var(--border2)';
     browsBtn.style.background = 'transparent';    browsBtn.style.borderColor = 'transparent';
-    // Clear previous search results when switching to search tab
+    // Clear previous search results AND reset the type filter when switching to search tab
     document.getElementById('global-search').value = '';
+    document.getElementById('search-type-filter').value = '';
     document.getElementById('search-result-count').textContent = '';
     document.getElementById('play-browser-grid').innerHTML =
       '<div class="empty-state">Type a play name to search all formations</div>';
@@ -1075,10 +1076,12 @@ function renderGlobalSearch() {
     fdata.plays.forEach(p => {
       if (query && !p.name.toLowerCase().includes(query) && !p.slug.includes(query)) return;
       if (typeFilter === 'pass'    && !(p.isPass && !p.isRPO)) return;
-      if (typeFilter === 'run'     && !p.isRun) return;
+      if (typeFilter === 'run'     && !p.isRun && !p.isOption) return;
       if (typeFilter === 'rpo'     && !p.isRPO) return;
       if (typeFilter === 'trick'   && !p.isTrick) return;
-      if (['Zone','Power','Counter','Trap'].includes(typeFilter) && p.runConcept !== typeFilter) return;
+      // Concept filter: match run plays AND option plays with that concept
+      if (['Zone','Power','Counter','Trap'].includes(typeFilter) &&
+          p.runConcept !== typeFilter) return;
       if (!bySlug[p.slug]) bySlug[p.slug] = { p, formations: [], isGoalLine: fdata.isGoalLine };
       bySlug[p.slug].formations.push({ fslug, fname: fdata.name });
     });
@@ -1128,6 +1131,7 @@ function renderGlobalSearch() {
       <div class="play-type">
         ${p.isRPO?'<span class="badge badge-rpo">RPO</span>':''}
         ${p.isTrick?'<span class="badge badge-trick">Trick</span>':''}
+        ${p.isOption?'<span class="badge badge-auto">Option</span>':''}
         ${p.isRun&&!p.isRPO?`<span class="badge badge-${(p.runConcept||'any').toLowerCase()}">${p.runConcept||'Run'}</span>`:''}
         ${p.isPass&&!p.isRPO&&!p.isTrick?'<span class="badge badge-pass">Pass</span>':''}
         ${p.isAutoMotion?'<span class="badge badge-auto">Motion</span>':''}
