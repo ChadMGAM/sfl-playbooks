@@ -579,8 +579,6 @@ let sourceTeam = '';
 let playbooks = [];
 
 const BANNED = ['flexbone','empty-bunch-quads','gun-empty-bunch-quads','gun-bunch-quads'];
-const RPO_ZONE_KEYS   = ['rpo-read','rpo-peek','rpo-glance','rpo-bubble','rpo-zone','rpo-x-glance'];
-const RPO_POWER_KEYS  = ['rpo-alert','rpo-split'];
 
 // ── Storage — calls Vercel serverless functions (token stays server-side) ──
 async function kvGet() {
@@ -897,12 +895,10 @@ function renderPlayBrowser() {
 
   function isRPOAllowed(p) {
     if (!p.isRPO) return true;
-    const slug = p.slug.toLowerCase();
-    const zoneType = RPO_ZONE_KEYS.some(k => slug.includes(k));
-    const powerType = RPO_POWER_KEYS.some(k => slug.includes(k));
-    if (zoneType) return selectedConcepts.some(c => c === 'Zone' || c === 'Counter');
-    if (powerType) return selectedConcepts.some(c => c === 'Power' || c === 'Trap');
-    return true;
+    // Use the runConcept field on the RPO — set from ground truth alignment
+    const concept = p.runConcept;
+    if (!concept) return true; // no alignment data, allow it
+    return selectedConcepts.includes(concept);
   }
 
   let plays = fdata.plays.filter(p => {
@@ -1099,10 +1095,9 @@ function renderGlobalSearch() {
   function isRunAllowed(p) { return !p.isRun || p.runConcept === 'Any' || selectedConcepts.includes(p.runConcept); }
   function isRPOAllowed(p) {
     if (!p.isRPO) return true;
-    const s = p.slug;
-    if (RPO_ZONE_KEYS.some(k=>s.includes(k)))  return selectedConcepts.some(c=>c==='Zone'||c==='Counter');
-    if (RPO_POWER_KEYS.some(k=>s.includes(k))) return selectedConcepts.some(c=>c==='Power'||c==='Trap');
-    return true;
+    const concept = p.runConcept;
+    if (!concept) return true;
+    return selectedConcepts.includes(concept);
   }
 
   grid.innerHTML = unique.map(({ p, formations, isGoalLine }) => {
