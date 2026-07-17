@@ -1483,7 +1483,10 @@ function renderPBPanel() {
 // ── Submit ─────────────────────────────────────────────────────────────────
 async function submitPlaybook() {
   const v = validate(currentPB);
-  if (v.errors.length > 0) return;
+  if (v.errors.length > 0) {
+    alert(`❌ Your playbook has ${v.errors.length} error${v.errors.length>1?'s':''} that must be fixed before submitting:\n\n• ${v.errors.join('\n• ')}`);
+    return;
+  }
 
   const pb = {
     id: Date.now(),
@@ -1493,12 +1496,12 @@ async function submitPlaybook() {
     concepts: currentPB.concepts,
     plays: currentPB.plays,
     submitted: new Date().toLocaleDateString(),
-    passCount: currentPB.plays.filter(p=>p.isPass&&!p.isRPO).length + currentPB.plays.filter(p=>p.isRPO).length,
-    runCount: currentPB.plays.filter(p=>p.isRun).length,
-    rpoCount: currentPB.plays.filter(p=>p.isRPO).length,
-    optionCount: currentPB.plays.filter(p=>p.isOption).length,
-    trickCount: currentPB.plays.filter(p=>p.isTrick).length,
-    setCount: new Set(currentPB.plays.map(p=>p.formation)).size,
+    passCount:   v.passTotal,
+    runCount:    v.runCount,
+    rpoCount:    v.rpoCount,
+    optionCount: v.optionCount,
+    trickCount:  v.trickCount,
+    setCount:    v.setCount,
   };
 
   const existing = playbooks.findIndex(p => p.teamName.toLowerCase() === pb.teamName.toLowerCase());
@@ -1587,7 +1590,7 @@ function renderLibrary() {
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:8px 0">
-        ${[['Pass',pb.passCount],['Run',pb.runCount],['RPO',pb.rpoCount],['Option',pb.optionCount||0],['Trick',pb.trickCount],['Sets',pb.setCount]].map(([l,n])=>`
+        ${[['Pass',v.passTotal],['Run',v.runCount],['RPO',v.rpoCount],['Option',v.optionCount],['Trick',v.trickCount],['Sets',v.setCount]].map(([l,n])=>`
           <div style="text-align:center;background:var(--surface2);border-radius:var(--radius-sm);padding:5px">
             <div style="font-size:14px;font-weight:700">${n||0}</div>
             <div style="font-size:9px;color:var(--text2)">${esc(l)}</div>
