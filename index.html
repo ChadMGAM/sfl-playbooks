@@ -945,6 +945,7 @@ function renderPlayBrowser() {
       `data-isrpo="${p.isRPO}"`,
       `data-istrick="${p.isTrick}"`,
       `data-isauto="${p.isAutoMotion}"`,
+      `data-isopt="${p.isOption||false}"`,
       `data-isgl="${isGoalLine}"`,
       `data-url="${(p.url||'').replace(/"/g,'&quot;')}"`,
     ].join(' ');
@@ -1243,11 +1244,11 @@ function handlePlayToggle(btn) {
     d.key, d.formation, d.slug, d.name,
     d.isrun, d.runconcept,
     d.ispass, d.isrpo, d.istrick, d.isauto,
-    d.isgl, d.url
+    d.isopt, d.isgl, d.url
   );
 }
 
-function togglePlay(key, formation, slug, name, isRun, runConcept, isPass, isRPO, isTrick, isAutoMotion, isGoalLine, url) {
+function togglePlay(key, formation, slug, name, isRun, runConcept, isPass, isRPO, isTrick, isAutoMotion, isOption, isGoalLine, url) {
   const idx = currentPB.plays.findIndex(p => p.key === key);
   if (idx >= 0) {
     currentPB.plays.splice(idx, 1);
@@ -1257,6 +1258,7 @@ function togglePlay(key, formation, slug, name, isRun, runConcept, isPass, isRPO
       isRun: isRun === 'true', runConcept,
       isPass: isPass === 'true', isRPO: isRPO === 'true',
       isTrick: isTrick === 'true', isAutoMotion: isAutoMotion === 'true',
+      isOption: isOption === 'true',
       isGoalLine: isGoalLine === 'true',
     });
   }
@@ -1275,16 +1277,25 @@ function validate(pb) {
   const maxPass   = use3 ? 65 : 100;
   const maxRPO    = use3 ? 20 : 15;
   const maxOption = use3 ? 20 : 15;
+  const scheme = pb.scheme || currentPB.scheme;
+
+  // Enrich plays with isOption from DB if missing (fixes old saved playbooks)
+  const enriched = allPlays.map(p => {
+    if (p.isOption !== undefined && p.isOption !== null) return p;
+    // Look up in DB
+    const dbPlay = DB?.[scheme]?.formations?.[p.formation]?.plays?.find(dp => dp.slug === p.slug);
+    return dbPlay ? { ...p, isOption: dbPlay.isOption || false } : p;
+  });
 
   // Goal line / hail mary excluded from play count, formation count, and pass/run minimums
-  const plays   = allPlays.filter(p => !p.isGoalLine);
+  const plays   = enriched.filter(p => !p.isGoalLine);
 
   const total       = plays.length;
   const passPlays   = plays.filter(p => p.isPass && !p.isRPO);
   const runPlays    = plays.filter(p => p.isRun);
   const rpoPlays    = plays.filter(p => p.isRPO);
   const optionPlays = plays.filter(p => p.isOption);
-  const trickPlays  = allPlays.filter(p => p.isTrick);
+  const trickPlays  = enriched.filter(p => p.isTrick);
   const autoPass    = plays.filter(p => p.isAutoMotion && (p.isPass || p.isRPO));
   const sets        = new Set(plays.map(p => p.formation));
   const passTotal   = passPlays.length + rpoPlays.length;
@@ -1294,7 +1305,7 @@ function validate(pb) {
   return {
     total, passTotal, runCount: runPlays.length, rpoCount: rpoPlays.length,
     optionCount, trickCount, autoPassCount: autoPass.length, setCount: sets.size,
-    glCount: allPlays.filter(p => p.isGoalLine).length,
+    glCount: enriched.filter(p => p.isGoalLine).length,
     maxPass, maxRPO, maxOption,
     errors: [
       total > 150                      && `Total plays: ${total}/150 max`,
@@ -1446,6 +1457,7 @@ function renderPBPanel() {
           `data-isrpo="${p.isRPO}"`,
           `data-istrick="${p.isTrick}"`,
           `data-isauto="${p.isAutoMotion}"`,
+          `data-isopt="${p.isOption||false}"`,
           `data-isgl="${p.isGoalLine||false}"`,
           `data-url="${esc(p.url||'')}"`,
         ].join(' ');
