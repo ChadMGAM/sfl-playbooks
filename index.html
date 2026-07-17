@@ -1613,14 +1613,23 @@ function viewPlaybook(idx) {
     `${pb.teamName} · ${pb.scheme} · Submitted ${pb.submitted||'—'} · Concepts: ${(pb.concepts||[]).join(', ')}`;
 
   const plays = pb.plays || [];
-  const nonGL = plays.filter(p => !p.isGoalLine);
-  const glPlays = plays.filter(p => p.isGoalLine);
+
+  // Enrich isOption from DB for plays saved before isOption was tracked
+  const scheme = pb.scheme;
+  const enrichedPlays = plays.map(p => {
+    if (p.isOption) return p;
+    const dbPlay = DB?.[scheme]?.formations?.[p.formation]?.plays?.find(dp => dp.slug === p.slug);
+    return dbPlay ? { ...p, isOption: dbPlay.isOption || false } : p;
+  });
+
+  const nonGL = enrichedPlays.filter(p => !p.isGoalLine);
+  const glPlays = enrichedPlays.filter(p => p.isGoalLine);
   const stats = [
     ['Pass',      nonGL.filter(p=>p.isPass&&!p.isRPO).length + nonGL.filter(p=>p.isRPO).length],
     ['Run',       nonGL.filter(p=>p.isRun).length],
     ['RPO',       nonGL.filter(p=>p.isRPO).length],
     ['Option',    nonGL.filter(p=>p.isOption).length],
-    ['Trick',     plays.filter(p=>p.isTrick).length],
+    ['Trick',     enrichedPlays.filter(p=>p.isTrick).length],
     ['Sets',      new Set(nonGL.map(p=>p.formation)).size],
     ['Total',     nonGL.length],
     ['Goal Line', glPlays.length],
@@ -1633,7 +1642,7 @@ function viewPlaybook(idx) {
     </div>`).join('');
 
   const grouped = {};
-  plays.forEach(p => {
+  enrichedPlays.forEach(p => {
     if (!grouped[p.formation]) grouped[p.formation] = [];
     grouped[p.formation].push(p);
   });
