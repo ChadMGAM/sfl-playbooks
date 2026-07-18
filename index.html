@@ -895,9 +895,8 @@ function renderPlayBrowser() {
 
   function isRPOAllowed(p) {
     if (!p.isRPO) return true;
-    // Use the runConcept field on the RPO — set from ground truth alignment
     const concept = p.runConcept;
-    if (!concept) return true; // no alignment data, allow it
+    if (!concept || concept === 'Any') return true; // Any = always allowed
     return selectedConcepts.includes(concept);
   }
 
@@ -1097,7 +1096,7 @@ function renderGlobalSearch() {
   function isRPOAllowed(p) {
     if (!p.isRPO) return true;
     const concept = p.runConcept;
-    if (!concept) return true;
+    if (!concept || concept === 'Any') return true;
     return selectedConcepts.includes(concept);
   }
 
