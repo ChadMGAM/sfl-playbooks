@@ -953,7 +953,7 @@ function renderPlayBrowser() {
     return `<div class="play-card ${already?'in-pb':''} ${!allowed?'blocked':''}">
       <div class="play-name">${p.name}</div>
       <div class="play-type">
-        ${p.isRPO   ? '<span class="badge badge-rpo">RPO</span>' : ''}
+        ${p.isRPO   ? `<span class="badge badge-rpo">RPO</span>${p.runConcept ? `<span class="badge badge-${p.runConcept.toLowerCase()}">${p.runConcept}</span>` : ''}` : ''}
         ${p.isTrick ? '<span class="badge badge-trick">Trick</span>' : ''}
         ${p.isOption ? '<span class="badge badge-auto">Option</span>' : ''}
         ${p.isRun && !p.isRPO ? `<span class="badge badge-${(p.runConcept||'any').toLowerCase()}">${p.runConcept||'Run'}</span>` : ''}
@@ -1126,7 +1126,7 @@ function renderGlobalSearch() {
     return `<div class="play-card ${!allowed?'blocked':''}" id="${cardId}">
       <div class="play-name">${p.name}</div>
       <div class="play-type">
-        ${p.isRPO?'<span class="badge badge-rpo">RPO</span>':''}
+        ${p.isRPO?`<span class="badge badge-rpo">RPO</span>${p.runConcept?`<span class="badge badge-${p.runConcept.toLowerCase()}">${p.runConcept}</span>`:''}`:''}
         ${p.isTrick?'<span class="badge badge-trick">Trick</span>':''}
         ${p.isOption?'<span class="badge badge-auto">Option</span>':''}
         ${p.isRun&&!p.isRPO?`<span class="badge badge-${(p.runConcept||'any').toLowerCase()}">${p.runConcept||'Run'}</span>`:''}
@@ -1468,7 +1468,7 @@ function renderPBPanel() {
             ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" title="View play art on cfb.fan" style="color:var(--text3);font-size:12px;margin-left:4px;text-decoration:none" onmouseover="this.style.color='var(--navy)'" onmouseout="this.style.color='var(--text3)'">&#128065;</a>` : ''}
           </div>
           <div class="pb-play-right">
-            ${p.isRPO ? '<span class="badge badge-rpo">RPO</span>' : ''}
+            ${p.isRPO ? `<span class="badge badge-rpo">RPO</span>${p.runConcept?`<span class="badge badge-${p.runConcept.toLowerCase()}">${p.runConcept}</span>`:''}` : ''}
             ${p.isTrick ? '<span class="badge badge-trick">Trick</span>' : ''}
             ${p.isRun && !p.isRPO ? `<span class="badge badge-${(p.runConcept||'any').toLowerCase()}">${p.runConcept||'Run'}</span>` : ''}
             ${p.isPass && !p.isRPO && !p.isTrick ? '<span class="badge badge-pass">Pass</span>' : ''}
@@ -1669,7 +1669,7 @@ function viewPlaybook(idx) {
             <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px">
               <span>${esc(p.name)}</span>
               <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;margin-left:6px">
-                ${p.isRPO?'<span class="badge badge-rpo" style="font-size:8px">RPO</span>':''}
+                ${p.isRPO?`<span class="badge badge-rpo" style="font-size:8px">RPO</span>${p.runConcept?`<span class="badge badge-${p.runConcept.toLowerCase()}" style="font-size:8px">${esc(p.runConcept)}</span>`:''}`:''}
                 ${p.isOption?'<span class="badge badge-auto" style="font-size:8px">Opt</span>':''}
                 ${p.isTrick?'<span class="badge badge-trick" style="font-size:8px">Trick</span>':''}
                 ${p.isRun&&!p.isRPO?`<span class="badge badge-${(p.runConcept||'any').toLowerCase()}" style="font-size:8px">${esc(p.runConcept||'Run')}</span>`:''}
