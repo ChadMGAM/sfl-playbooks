@@ -531,6 +531,11 @@
     </div>
     <!-- Plays by formation -->
     <div id="vm-plays" style="padding:16px 20px;max-height:60vh;overflow-y:auto"></div>
+    <!-- Edit history -->
+    <div id="vm-editlog" style="display:none;border-top:1px solid var(--border2);padding:16px 20px;max-height:300px;overflow-y:auto">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Edit History</div>
+      <div id="vm-editlog-entries"></div>
+    </div>
   </div>
 </div>
 
@@ -1520,6 +1525,33 @@ async function submitPlaybook() {
   };
 
   const existing = playbooks.findIndex(p => p.teamName.toLowerCase() === pb.teamName.toLowerCase());
+
+  // Build edit log entry if this is an edit (not a fresh submission)
+  if (existing >= 0 && currentPB.preEditSnapshot) {
+    const oldKeys = new Set(currentPB.preEditSnapshot.map(p => p.key));
+    const newKeys = new Set(currentPB.plays.map(p => p.key));
+    const oldByKey = Object.fromEntries(currentPB.preEditSnapshot.map(p => [p.key, p]));
+    const newByKey = Object.fromEntries(currentPB.plays.map(p => [p.key, p]));
+
+    const added   = currentPB.plays.filter(p => !oldKeys.has(p.key));
+    const removed = currentPB.preEditSnapshot.filter(p => !newKeys.has(p.key));
+
+    const formatPlay = p => {
+      const type = p.isRPO ? 'RPO' : p.isOption ? 'Option' : p.isRun ? `Run (${p.runConcept||'?'})` : 'Pass';
+      const formation = (p.formation||'').replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+      return `${p.name} — ${formation} [${type}]`;
+    };
+
+    const logEntry = {
+      date: new Date().toLocaleString(),
+      added:   added.map(formatPlay),
+      removed: removed.map(formatPlay),
+      netPlays: currentPB.plays.filter(p=>!p.isGoalLine).length - currentPB.preEditSnapshot.filter(p=>!p.isGoalLine).length,
+    };
+
+    pb.editLog = [...(playbooks[existing].editLog || []), logEntry];
+  }
+
   if (existing >= 0) {
     if (!confirm(`A playbook for "${pb.teamName}" already exists. Replace it?`)) return;
     playbooks[existing] = pb;
@@ -1698,6 +1730,36 @@ function viewPlaybook(idx) {
 
   document.getElementById('view-modal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
+
+  // Edit history
+  const logEl = document.getElementById('vm-editlog');
+  const entriesEl = document.getElementById('vm-editlog-entries');
+  const log = pb.editLog || [];
+  if (log.length === 0) {
+    logEl.style.display = 'none';
+  } else {
+    logEl.style.display = '';
+    entriesEl.innerHTML = [...log].reverse().map((entry, i) => {
+      const netStr = entry.netPlays > 0 ? `+${entry.netPlays}` : `${entry.netPlays}`;
+      const netColor = entry.netPlays > 0 ? 'var(--green-text)' : entry.netPlays < 0 ? 'var(--red)' : 'var(--text2)';
+      return `
+        <div style="margin-bottom:14px;padding-bottom:14px;${i < log.length-1 ? 'border-bottom:1px solid var(--border2)' : ''}">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="font-size:11px;font-weight:600;color:var(--text)">${esc(entry.date)}</div>
+            <div style="font-size:11px;font-weight:700;color:${netColor}">${netStr} plays</div>
+          </div>
+          ${entry.added.length ? `
+            <div style="font-size:10px;font-weight:600;color:var(--green-text);margin-bottom:3px">Added (${entry.added.length})</div>
+            ${entry.added.map(p=>`<div style="font-size:10px;color:var(--text2);padding:2px 0 2px 8px;border-left:2px solid var(--green-text)">+ ${esc(p)}</div>`).join('')}
+          ` : ''}
+          ${entry.removed.length ? `
+            <div style="font-size:10px;font-weight:600;color:var(--red);margin-top:5px;margin-bottom:3px">Removed (${entry.removed.length})</div>
+            ${entry.removed.map(p=>`<div style="font-size:10px;color:var(--text2);padding:2px 0 2px 8px;border-left:2px solid var(--red)">− ${esc(p)}</div>`).join('')}
+          ` : ''}
+          ${!entry.added.length && !entry.removed.length ? `<div style="font-size:10px;color:var(--text3);font-style:italic">No play changes</div>` : ''}
+        </div>`;
+    }).join('');
+  }
 }
 
 function closeViewModal() {
@@ -1709,12 +1771,18 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeViewMod
 
 function loadForEdit(idx) {
   const pb = playbooks[idx];
-  currentPB = { teamName: pb.teamName, scheme: pb.scheme, concepts: pb.concepts||[], plays: JSON.parse(JSON.stringify(pb.plays||[])) };
+  currentPB = {
+    teamName: pb.teamName,
+    scheme: pb.scheme,
+    concepts: pb.concepts||[],
+    plays: JSON.parse(JSON.stringify(pb.plays||[])),
+    editingIndex: idx,
+    preEditSnapshot: JSON.parse(JSON.stringify(pb.plays||[])), // snapshot for diff
+  };
   selectedConcepts = [...currentPB.concepts];
   document.getElementById('team-name-input').value = pb.teamName;
   document.getElementById('scheme-select').value = pb.scheme;
   onSchemeChange();
-  // Restore concept selections
   ['Zone','Power','Counter','Trap'].forEach(name => {
     const el = document.getElementById('concept-' + name);
     el.classList.toggle('selected', selectedConcepts.includes(name));
