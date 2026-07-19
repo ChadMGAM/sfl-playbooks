@@ -1273,10 +1273,25 @@ function validate(pb) {
   const allPlays = pb.plays || [];
   const concepts = pb.concepts || [];
   const use3 = concepts.length >= 3;
-  const maxPass   = use3 ? 65 : 100;
-  const maxRPO    = use3 ? 20 : 15;
-  const maxOption = use3 ? 20 : 15;
   const scheme = pb.scheme || currentPB.scheme;
+
+  // Base limits
+  let maxPass      = use3 ? 65 : 100;
+  let maxRPO       = use3 ? 20 : 15;
+  let maxOption    = use3 ? 20 : 15;
+  let minRun       = 50;
+  let maxAutoPass  = 25;
+
+  // Scheme-specific overrides
+  if (scheme === 'Air Raid') {
+    minRun      = 40;
+    maxOption   = 10;
+    maxAutoPass = 30;
+  } else if (scheme === 'Veer & Shoot/Run & Shoot') {
+    maxRPO      = 20;
+  } else if (scheme === 'Power Option' || scheme === 'Spread Option') {
+    maxOption   = 20;
+  }
 
   // Enrich plays with isOption from DB if missing (fixes old saved playbooks)
   const enriched = allPlays.map(p => {
@@ -1305,17 +1320,17 @@ function validate(pb) {
     total, passTotal, runCount: runPlays.length, rpoCount: rpoPlays.length,
     optionCount, trickCount, autoPassCount: autoPass.length, setCount: sets.size,
     glCount: enriched.filter(p => p.isGoalLine).length,
-    maxPass, maxRPO, maxOption,
+    maxPass, maxRPO, maxOption, minRun, maxAutoPass,
     errors: [
-      total > 150                      && `Total plays: ${total}/150 max`,
-      passTotal < 50                   && `Pass plays: ${passTotal} — need 50 min`,
-      passTotal > maxPass              && `Pass plays: ${passTotal} — max is ${maxPass}`,
-      runPlays.length < 50             && `Run plays: ${runPlays.length} — need 50 min`,
-      rpoPlays.length > maxRPO         && `RPOs: ${rpoPlays.length} — max ${maxRPO}`,
-      optionPlays.length > maxOption   && `Option plays: ${optionPlays.length} — max ${maxOption}`,
-      autoPass.length > 25             && `Auto-motion pass: ${autoPass.length} — max 25`,
-      trickPlays.length > 10           && `Trick plays: ${trickPlays.length} — max 10`,
-      sets.size < 12                   && `Formation sets: ${sets.size} — need 12 min`,
+      total > 150                          && `Total plays: ${total}/150 max`,
+      passTotal < 50                       && `Pass plays: ${passTotal} — need 50 min`,
+      passTotal > maxPass                  && `Pass plays: ${passTotal} — max is ${maxPass}`,
+      runPlays.length < minRun             && `Run plays: ${runPlays.length} — need ${minRun} min`,
+      rpoPlays.length > maxRPO             && `RPOs: ${rpoPlays.length} — max ${maxRPO}`,
+      optionPlays.length > maxOption       && `Option plays: ${optionPlays.length} — max ${maxOption}`,
+      autoPass.length > maxAutoPass        && `Auto-motion pass: ${autoPass.length} — max ${maxAutoPass}`,
+      trickPlays.length > 10               && `Trick plays: ${trickPlays.length} — max 10`,
+      sets.size < 12                       && `Formation sets: ${sets.size} — need 12 min`,
     ].filter(Boolean),
     warnings: [
       passTotal === 0 && runPlays.length === 0 && 'Add plays to get started',
@@ -1345,10 +1360,10 @@ function renderValidation() {
       <div class="pbar"><div class="pbar-fill ${cls(v.passTotal,50,v.maxPass)}" style="width:${pct(v.passTotal,v.maxPass)}%"></div></div>
     </div>
     <div class="meter">
-      <div class="meter-val ${v.runCount < 50 ? 'err' : 'ok'}">${v.runCount}</div>
+      <div class="meter-val ${v.runCount < v.minRun ? 'err' : 'ok'}">${v.runCount}</div>
       <div class="meter-label">Run plays</div>
-      <div class="meter-limit">min 50</div>
-      <div class="pbar"><div class="pbar-fill ${v.runCount<50?'warn':'ok'}" style="width:${pct(v.runCount,100)}%"></div></div>
+      <div class="meter-limit">min ${v.minRun}</div>
+      <div class="pbar"><div class="pbar-fill ${v.runCount<v.minRun?'warn':'ok'}" style="width:${pct(v.runCount,100)}%"></div></div>
     </div>
     <div class="meter">
       <div class="meter-val ${v.rpoCount > v.maxRPO ? 'err' : 'ok'}">${v.rpoCount}</div>
@@ -1375,10 +1390,10 @@ function renderValidation() {
       <div class="pbar"><div class="pbar-fill ${v.setCount<12?'warn':'ok'}" style="width:${pct(v.setCount,20)}%"></div></div>
     </div>
     <div class="meter">
-      <div class="meter-val ${v.autoPassCount > 25 ? 'err' : 'ok'}">${v.autoPassCount}</div>
+      <div class="meter-val ${v.autoPassCount > v.maxAutoPass ? 'err' : 'ok'}">${v.autoPassCount}</div>
       <div class="meter-label">Auto-motion pass</div>
-      <div class="meter-limit">max 25</div>
-      <div class="pbar"><div class="pbar-fill ${v.autoPassCount>25?'err':'ok'}" style="width:${pct(v.autoPassCount,25)}%"></div></div>
+      <div class="meter-limit">max ${v.maxAutoPass}</div>
+      <div class="pbar"><div class="pbar-fill ${v.autoPassCount>v.maxAutoPass?'err':'ok'}" style="width:${pct(v.autoPassCount,v.maxAutoPass)}%"></div></div>
     </div>
     <div class="meter">
       <div class="meter-val" style="color:var(--text2)">${v.glCount}</div>
@@ -1393,12 +1408,12 @@ function renderValidation() {
     ...v.warnings.map(w => ({ type:'warn', text:w })),
     v.total <= 150 && v.total > 0                && { type:'ok', text:`Total plays: ${v.total}/150` },
     v.passTotal >= 50 && v.passTotal <= v.maxPass && { type:'ok', text:`Pass plays: ${v.passTotal} (min 50 / max ${v.maxPass})` },
-    v.runCount >= 50                              && { type:'ok', text:`Run plays: ${v.runCount} (50+ required)` },
-    v.rpoCount <= v.maxRPO                        && { type:'ok', text:`RPOs: ${v.rpoCount}/${v.maxRPO} max` },
-    v.optionCount <= v.maxOption                  && { type:'ok', text:`Option plays: ${v.optionCount}/${v.maxOption} max` },
+    v.runCount >= v.minRun                              && { type:'ok', text:`Run plays: ${v.runCount} (${v.minRun}+ required)` },
+    v.rpoCount <= v.maxRPO                              && { type:'ok', text:`RPOs: ${v.rpoCount}/${v.maxRPO} max` },
+    v.optionCount <= v.maxOption                        && { type:'ok', text:`Option plays: ${v.optionCount}/${v.maxOption} max` },
     v.trickCount <= 10                            && { type:'ok', text:`Trick plays: ${v.trickCount}/10 max` },
     v.setCount >= 12                              && { type:'ok', text:`Sets: ${v.setCount} (12+ required)` },
-    v.autoPassCount <= 25                         && { type:'ok', text:`Auto-motion pass: ${v.autoPassCount}/25 max` },
+    v.autoPassCount <= v.maxAutoPass                    && { type:'ok', text:`Auto-motion pass: ${v.autoPassCount}/${v.maxAutoPass} max` },
   ].filter(Boolean);
 
   document.getElementById('val-list').innerHTML = allItems.map(i =>
