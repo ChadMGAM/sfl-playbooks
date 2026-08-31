@@ -590,16 +590,19 @@ async function kvGet() {
   const r = await fetch('/api/playbooks-get');
   if (!r.ok) throw new Error(`Load failed: ${r.status}`);
   const j = await r.json();
-  return j.result; // null or JSON string
+  return j.result;
 }
 
-async function kvSet(value) {
+async function kvSet(playbooks, action = 'save', key = '') {
   const r = await fetch('/api/playbooks-set', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: value, // already a JSON string
+    body: JSON.stringify({ action, playbooks, key }),
   });
-  if (!r.ok) throw new Error(`Save failed: ${r.status}`);
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}));
+    throw new Error(j.error || `Save failed: ${r.status}`);
+  }
   return true;
 }
 
@@ -1560,7 +1563,7 @@ async function submitPlaybook() {
   }
 
   try {
-    await kvSet(JSON.stringify(playbooks));
+    await kvSet(playbooks, 'save');
   } catch(e) {
     alert('⚠️ Playbook saved locally but could not sync to the league library. Try submitting again.');
     return;
@@ -1793,11 +1796,24 @@ function loadForEdit(idx) {
   goToStep(2);
 }
 
-function deletePB(idx) {
-  if (!confirm('Delete this playbook?')) return;
+async function deletePB(idx) {
+  const pb = playbooks[idx];
+  if (!pb) return;
+
+  const key = prompt(`Enter the commissioner key to delete "${pb.saveName}":`);
+  if (!key) return;
+
   playbooks.splice(idx, 1);
-  kvSet(JSON.stringify(playbooks)).catch(()=>{});
   renderLibrary();
+
+  try {
+    await kvSet(playbooks, 'delete', key);
+  } catch(e) {
+    // Restore the playbook if the server rejected the key
+    playbooks.splice(idx, 0, pb);
+    renderLibrary();
+    alert(`❌ ${e.message}`);
+  }
 }
 
 init();
