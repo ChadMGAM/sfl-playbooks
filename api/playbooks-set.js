@@ -1,14 +1,25 @@
 // api/playbooks-set.js
 // Serverless function — runs on Vercel, token never exposed to browser
+// Supports two operations:
+//   { action: 'save', playbooks: [...] }   — submit/edit a playbook (no key needed)
+//   { action: 'delete', playbooks: [...], key: '...' } — delete a playbook (requires commissioner key)
 
 export default async function handler(req, res) {
-  // Only allow POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Basic size guard — free Upstash has 1MB per value limit
-  const body = JSON.stringify(req.body);
+  const { action, playbooks, key } = req.body || {};
+
+  // Delete requires the commissioner key
+  if (action === 'delete') {
+    const correct = process.env.COMMISSIONER_KEY;
+    if (!correct || key !== correct) {
+      return res.status(403).json({ error: 'Unauthorized — commissioner key required to delete playbooks.' });
+    }
+  }
+
+  const body = JSON.stringify(playbooks);
   if (body.length > 900_000) {
     return res.status(413).json({ error: 'Payload too large' });
   }
