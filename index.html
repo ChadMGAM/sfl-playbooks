@@ -597,11 +597,11 @@ async function kvSet(playbooks, action = 'save', key = '') {
   const r = await fetch('/api/playbooks-set', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, playbooks, key }),
+    body: JSON.stringify({ action, playbooks: playbooks, key }),
   });
   if (!r.ok) {
     const j = await r.json().catch(() => ({}));
-    throw new Error(j.error || `Save failed: ${r.status}`);
+    throw new Error(j.error || `Server error: ${r.status}`);
   }
   return true;
 }
@@ -1565,7 +1565,7 @@ async function submitPlaybook() {
   try {
     await kvSet(playbooks, 'save');
   } catch(e) {
-    alert('⚠️ Playbook saved locally but could not sync to the league library. Try submitting again.');
+    alert(`⚠️ Could not sync to the league library: ${e.message}\n\nTry submitting again.`);
     return;
   }
 
