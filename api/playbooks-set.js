@@ -1,9 +1,4 @@
 // api/playbooks-set.js
-// Serverless function — runs on Vercel, token never exposed to browser
-// Supports two operations:
-//   { action: 'save', playbooks: [...] }   — submit/edit a playbook (no key needed)
-//   { action: 'delete', playbooks: [...], key: '...' } — delete a playbook (requires commissioner key)
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -19,8 +14,12 @@ export default async function handler(req, res) {
     }
   }
 
-  const body = JSON.stringify(playbooks);
-  if (body.length > 900_000) {
+  if (!Array.isArray(playbooks)) {
+    return res.status(400).json({ error: 'Invalid payload — playbooks must be an array.' });
+  }
+
+  const serialized = JSON.stringify(playbooks);
+  if (serialized.length > 4_000_000) {
     return res.status(413).json({ error: 'Payload too large' });
   }
 
@@ -33,12 +32,16 @@ export default async function handler(req, res) {
           Authorization: `Bearer ${process.env.UPSTASH_TOKEN}`,
           'Content-Type': 'application/json',
         },
-        body,
+        body: serialized,
       }
     );
+    if (!r.ok) {
+      const text = await r.text();
+      return res.status(500).json({ error: `Upstash error: ${r.status} ${text}` });
+    }
     const data = await r.json();
     res.status(200).json(data);
   } catch (e) {
-    res.status(500).json({ error: 'Failed to save playbooks' });
+    res.status(500).json({ error: `Failed to save playbooks: ${e.message}` });
   }
 }
