@@ -582,6 +582,7 @@ let selectedConcepts = [];
 let currentPB = { teamName:'', scheme:'', concepts:[], plays:[] };
 let sourceTeam = '';
 let playbooks = [];
+let playbooksLoadedOk = false; // guards against silent wipe on load failure
 
 const BANNED = ['flexbone','empty-bunch-quads','gun-empty-bunch-quads','gun-bunch-quads'];
 
@@ -593,11 +594,27 @@ async function kvGet() {
   return j.result;
 }
 
-async function kvSet(playbooks, action = 'save', key = '') {
+// Upsert a single playbook server-side (safe against race conditions).
+// The server fetches the current list fresh, merges this entry, then saves.
+async function kvUpsert(playbook) {
   const r = await fetch('/api/playbooks-set', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, playbooks: playbooks, key }),
+    body: JSON.stringify({ action: 'upsert', playbook }),
+  });
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}));
+    throw new Error(j.error || `Server error: ${r.status}`);
+  }
+  return true;
+}
+
+// Bulk write — used only for delete (commissioner action).
+async function kvSet(list, action = 'save', key = '') {
+  const r = await fetch('/api/playbooks-set', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, playbooks: list, key }),
   });
   if (!r.ok) {
     const j = await r.json().catch(() => ({}));
@@ -611,7 +628,16 @@ async function init() {
   try {
     const saved = await kvGet();
     if (saved) playbooks = validateStoragePayload(JSON.parse(saved));
-  } catch(e) { playbooks = []; }
+    playbooksLoadedOk = true;
+  } catch(e) {
+    playbooksLoadedOk = false;
+    // Show a persistent banner — do NOT start with an empty list
+    const banner = document.createElement('div');
+    banner.id = 'load-error-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;color:#fff;text-align:center;padding:10px 16px;font-weight:600;font-size:14px;';
+    banner.textContent = '⚠️ Could not load the league playbook list. Submitting is disabled to protect existing data. Refresh to try again.';
+    document.body.prepend(banner);
+  }
 
   try {
     const r = await fetch('./plays_merged.json');
@@ -1505,6 +1531,11 @@ function renderPBPanel() {
 
 // ── Submit ─────────────────────────────────────────────────────────────────
 async function submitPlaybook() {
+  if (!playbooksLoadedOk) {
+    alert('⚠️ The league playbook list failed to load when you opened the page.\n\nSubmitting is blocked to prevent overwriting other coaches\' playbooks.\n\nRefresh the page and try again.');
+    return;
+  }
+
   const v = validate(currentPB);
   if (v.errors.length > 0) {
     alert(`❌ Your playbook has ${v.errors.length} error${v.errors.length>1?'s':''} that must be fixed before submitting:\n\n• ${v.errors.join('\n• ')}`);
@@ -1563,8 +1594,13 @@ async function submitPlaybook() {
   }
 
   try {
-    await kvSet(playbooks, 'save');
+    // kvUpsert sends only this one playbook; the server fetches the current
+    // list fresh and merges it in — safe against concurrent submissions.
+    await kvUpsert(pb);
   } catch(e) {
+    // Roll back local list on failure
+    if (existing >= 0) playbooks[existing] = playbooks[existing];
+    else playbooks.pop();
     alert(`⚠️ Could not sync to the league library: ${e.message}\n\nTry submitting again.`);
     return;
   }
